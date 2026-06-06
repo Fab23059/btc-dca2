@@ -564,14 +564,14 @@ document.getElementById("btnRefresh").addEventListener("click", refresh);
 // ---- BTC Preisverlauf ----
 let priceChart = null;
 const RANGES = {
-  "1h":  { interval:"1m",  limit:60  },
-  "1d":  { interval:"1h",  limit:24  },
-  "1w":  { interval:"4h",  limit:42  },
-  "1m":  { interval:"1d",  limit:30  },
-  "1y":  { interval:"1w",  limit:52  },
-  "2y":  { interval:"1w",  limit:104 },
-  "5y":  { interval:"1w",  limit:260 },
-  "10y": { interval:"1M",  limit:120 },
+  "1h":  { days:1,    sliceLast:12  }, // 5-Min-Daten, letzte 12 = ~1h
+  "1d":  { days:1,    sliceLast:null },
+  "1w":  { days:7,    sliceLast:null },
+  "1m":  { days:30,   sliceLast:null },
+  "1y":  { days:365,  sliceLast:null },
+  "2y":  { days:730,  sliceLast:null },
+  "5y":  { days:1825, sliceLast:null },
+  "10y": { days:3650, sliceLast:null },
 };
 function fmtPriceLabel(ts, range){
   const d = new Date(ts);
@@ -584,9 +584,13 @@ async function loadPriceChart(range){
   const el = document.getElementById("priceRange");
   el.textContent = "lade\u2026";
   try{
-    const data = await fetchJSON(`/api/v3/klines?symbol=${SYMBOL}&interval=${cfg.interval}&limit=${cfg.limit}`);
-    const labels = data.map(r => fmtPriceLabel(r[0], range));
-    const closes = data.map(r => parseFloat(r[4]));
+    // CoinGecko Public API: CORS-sicher, kein Key nötig
+    const url = `https://api.coingecko.com/api/v3/coins/bitcoin/market_chart?vs_currency=eur&days=${cfg.days}`;
+    const json = await fetch(url, {cache:"no-store"}).then(r=>{ if(!r.ok) throw new Error(r.status); return r.json(); });
+    let pts = json.prices; // [[timestamp_ms, price], ...]
+    if(cfg.sliceLast) pts = pts.slice(-cfg.sliceLast);
+    const labels = pts.map(p => fmtPriceLabel(p[0], range));
+    const closes = pts.map(p => p[1]);
     const first = closes[0], last = closes[closes.length-1];
     const up = last >= first;
     const diff = (last - first) / first * 100;
