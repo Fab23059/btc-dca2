@@ -1,0 +1,38 @@
+name: BTC DCA Telegram Push
+
+on:
+  schedule:
+    # 06:00 UTC = 08:00 Uhr im Sommer (CEST)
+    - cron: "0 6 * * 1"
+    # 07:00 UTC = 08:00 Uhr im Winter (CET)
+    - cron: "0 7 * * 1"
+  workflow_dispatch:
+    inputs:
+      force:
+        description: "Sofort senden (Zeitpruefung umgehen)"
+        type: boolean
+        default: true
+
+concurrency:
+  group: btc-dca-push
+  cancel-in-progress: false
+
+jobs:
+  push:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Repository auschecken
+        uses: actions/checkout@v4
+
+      - name: Python einrichten
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Push senden
+        env:
+          TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          DASHBOARD_URL: ${{ vars.DASHBOARD_URL }}
+          FORCE: ${{ github.event_name == 'workflow_dispatch' && inputs.force }}
+        run: python bot.py
