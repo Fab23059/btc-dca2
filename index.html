@@ -5,14 +5,12 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 <title>BTC-Sparplan</title>
 
-<!-- Homescreen / PWA-Basics -->
 <meta name="theme-color" content="#0b0b0d" />
 <meta name="mobile-web-app-capable" content="yes" />
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
 <meta name="apple-mobile-web-app-title" content="BTC-Sparplan" />
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23F7931A'/%3E%3Ctext x='32' y='46' font-size='42' text-anchor='middle' fill='%231a1205' font-family='sans-serif' font-weight='bold'%3E%E2%82%BF%3C/text%3E%3C/svg%3E" />
-<link rel="manifest" href="data:application/json,%7B%22name%22%3A%22BTC-Sparplan%22%2C%22short_name%22%3A%22BTC-Sparplan%22%2C%22display%22%3A%22standalone%22%2C%22background_color%22%3A%22%230b0b0d%22%2C%22theme_color%22%3A%22%230b0b0d%22%2C%22icons%22%3A%5B%7B%22src%22%3A%22data%3Aimage%2Fsvg%2Bxml%2C%253Csvg%2520xmlns%253D%2527http%253A%252F%252Fwww.w3.org%252F2000%252Fsvg%2527%2520viewBox%253D%25270%25200%252064%252064%2527%253E%253Crect%2520width%253D%252764%2527%2520height%253D%252764%2527%2520rx%253D%252714%2527%2520fill%253D%2527%2523F7931A%2527%252F%253E%253C%252Fsvg%253E%22%2C%22sizes%22%3A%22any%22%2C%22type%22%3A%22image%2Fsvg%2Bxml%22%7D%5D%7D" />
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.3/chart.umd.min.js"></script>
 <style>
@@ -22,17 +20,12 @@
     --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
     --sans:ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;
   }
-  *{box-sizing:border-box}
-  html,body{margin:0}
-  body{
-    background:var(--bg); color:var(--text); font-family:var(--sans);
-    -webkit-font-smoothing:antialiased; line-height:1.5;
-    padding:env(safe-area-inset-top) 0 40px;
-  }
+  *{box-sizing:border-box} html,body{margin:0}
+  body{ background:var(--bg); color:var(--text); font-family:var(--sans);
+    -webkit-font-smoothing:antialiased; line-height:1.5; padding:env(safe-area-inset-top) 0 40px; }
   .wrap{max-width:880px; margin:0 auto; padding:20px 16px}
   .label{font-size:11px; letter-spacing:.12em; text-transform:uppercase; color:var(--muted)}
   .mono{font-family:var(--mono); font-variant-numeric:tabular-nums}
-
   header{display:flex; align-items:center; gap:12px; margin-bottom:6px}
   .logo{width:38px;height:38px;border-radius:11px;background:var(--accent);color:#1a1205;
     display:grid;place-items:center;font-weight:800;font-size:22px}
@@ -41,37 +34,30 @@
   .status{margin-left:auto; display:flex; align-items:center; gap:7px; font-size:12px; color:var(--muted)}
   .dot{width:8px;height:8px;border-radius:50%;background:var(--pos)}
   .dot.off{background:var(--neg)}
-
   .warn{display:none; margin:14px 0 0; padding:10px 13px; border:1px solid #5a3a18;
     background:#251a0c; color:#e8c89a; border-radius:10px; font-size:13px}
   .warn.show{display:block}
-
   .grid{display:grid; gap:12px; margin-top:16px}
   .kpis{grid-template-columns:repeat(auto-fit,minmax(150px,1fr))}
   .card{background:var(--surface); border:1px solid var(--border); border-radius:16px; padding:16px}
   .kpi .v{font-family:var(--mono); font-variant-numeric:tabular-nums; font-size:22px; font-weight:700;
     margin-top:7px; letter-spacing:-.02em; word-break:break-all}
   .kpi .v.small{font-size:18px}
-
   .chips{display:flex; gap:6px; flex-wrap:wrap; margin-top:9px}
   .chip{background:var(--surface2); border:1px solid var(--border); color:var(--muted);
     border-radius:999px; padding:5px 11px; font-size:12px; cursor:pointer; font-family:var(--sans)}
   .chip.active{background:var(--accent); border-color:var(--accent); color:#1a1205; font-weight:600}
-
   .toolbar{display:flex; gap:14px; flex-wrap:wrap; align-items:center; margin-bottom:12px}
   .group{display:flex; gap:6px}
   .chart-wrap{height:300px; position:relative}
-
   table{width:100%; border-collapse:collapse; font-size:13px}
   th,td{padding:9px 8px; text-align:right; white-space:nowrap}
   th:first-child,td:first-child{text-align:left}
   thead th{color:var(--muted); font-weight:500; font-size:11px; letter-spacing:.05em;
     text-transform:uppercase; border-bottom:1px solid var(--border)}
-  tbody tr{border-bottom:1px solid #1c1c22}
-  tbody tr:last-child{border-bottom:none}
+  tbody tr{border-bottom:1px solid #1c1c22} tbody tr:last-child{border-bottom:none}
   td.mono{font-family:var(--mono); font-variant-numeric:tabular-nums}
   .pos{color:var(--pos)} .neg{color:var(--neg)}
-
   .row-between{display:flex; align-items:center; justify-content:space-between; gap:10px}
   .btn{background:var(--surface2); border:1px solid var(--border); color:#cfcfd6;
     border-radius:10px; padding:9px 14px; font-size:13px; cursor:pointer; font-family:var(--sans)}
@@ -80,6 +66,8 @@
   .empty{color:var(--muted); font-size:14px; padding:8px 2px; line-height:1.6}
   .foot{color:var(--muted); font-size:11px; text-align:center; margin-top:22px; line-height:1.6}
   .scroll{overflow-x:auto; -webkit-overflow-scrolling:touch}
+  .mini-btn{background:#1a1a20;border:1px solid var(--border);color:#cfcfd6;border-radius:8px;
+    padding:3px 10px;font-size:11px;cursor:pointer;margin-left:6px}
 </style>
 </head>
 <body>
@@ -95,7 +83,6 @@
 
   <div id="warn" class="warn"></div>
 
-  <!-- KPIs -->
   <div class="grid kpis">
     <div class="card kpi"><div class="label">Investiert</div><div id="kInvested" class="v">&ndash;</div></div>
     <div class="card kpi"><div class="label">BTC gesamt</div><div id="kBtc" class="v small">&ndash;</div></div>
@@ -112,7 +99,6 @@
     </div>
   </div>
 
-  <!-- Chart -->
   <div class="card grid" style="margin-top:12px">
     <div class="toolbar">
       <div>
@@ -133,16 +119,6 @@
     <div class="chart-wrap"><canvas id="chart"></canvas></div>
   </div>
 
-  <!-- Tranchen -->
-  <div class="card" style="margin-top:12px">
-    <div class="row-between">
-      <div class="label">Tranchen &ndash; jede Kaufwoche</div>
-      <button id="toggleTranches" class="btn">ausblenden</button>
-    </div>
-    <div id="tranchesBox" class="scroll" style="margin-top:12px"></div>
-  </div>
-
-  <!-- Preisverlauf -->
   <div class="card" style="margin-top:12px">
     <div class="row-between" style="margin-bottom:8px">
       <div class="label">BTC/EUR Preisverlauf</div>
@@ -161,7 +137,14 @@
     <div class="chart-wrap"><canvas id="priceChart"></canvas></div>
   </div>
 
-  <!-- Backup -->
+  <div class="card" style="margin-top:12px">
+    <div class="row-between">
+      <div class="label">Tranchen &ndash; jede Kaufwoche</div>
+      <button id="toggleTranches" class="btn">ausblenden</button>
+    </div>
+    <div id="tranchesBox" class="scroll" style="margin-top:12px"></div>
+  </div>
+
   <div class="card" style="margin-top:12px">
     <div class="label" style="margin-bottom:10px">Datensicherung</div>
     <div style="display:flex; gap:10px; flex-wrap:wrap">
@@ -173,7 +156,7 @@
   </div>
 
   <div class="foot">
-    Kurse von Binance (data-api.binance.vision), lokal im Browser zwischengespeichert.
+    Kurse von CryptoCompare / CoinGecko, lokal im Browser zwischengespeichert.
     Reine Simulation deines Sparplans &ndash; kein Finanzrat.
     <span id="updated"></span>
   </div>
@@ -182,462 +165,298 @@
 <script>
 "use strict";
 
-// ----------------------------- Konfiguration -----------------------------
-const START = { y: 2026, m: 6, d: 8 };          // 8. Juni 2026 (ein Montag)
+const START = { y:2026, m:6, d:8 };
 const WEEKLY_EUR = 15;
-const FEE = 0.004;                               // 0,40 % Spread
-const NET_EUR = WEEKLY_EUR * (1 - FEE);          // 14,94
-const SYMBOL = "BTCEUR";
-const BASES = ["https://data-api.binance.vision", "https://api.binance.com"];
-const PRICE_KEY = "btcdca_monday_prices_v1";     // { "YYYY-MM-DD": openPrice }
-const DAILY_KEY = "btcdca_daily_closes_v1";      // { "YYYY-MM-DD": close }
+const FEE = 0.004;
+const NET_EUR = WEEKLY_EUR * (1 - FEE);   // 14,94
+const PRICE_KEY = "btcdca_monday_prices_v2";
+const DAILY_KEY = "btcdca_daily_closes_v2";
 
-// ------------------------------- Formatierung ----------------------------
 const eur  = n => (n==null||isNaN(n)) ? "\u2013" : n.toLocaleString("de-DE",{style:"currency",currency:"EUR"});
-const eur0 = n => (n==null||isNaN(n)) ? "\u2013" : Math.round(n).toLocaleString("de-DE")+"\u00A0\u20AC";
 const btcf = n => (n==null||isNaN(n)) ? "\u2013" : n.toLocaleString("de-DE",{minimumFractionDigits:8,maximumFractionDigits:8})+"\u00A0\u20BF";
 const pctf = n => (n==null||isNaN(n)) ? "\u2013" : (n>=0?"+":"")+n.toLocaleString("de-DE",{minimumFractionDigits:2,maximumFractionDigits:2})+"\u00A0%";
 
-// --------------------------- Zeit / DST-Logik ----------------------------
+// ---- Zeit / DST ----
 function berlinOffsetMin(date){
   const dtf = new Intl.DateTimeFormat("en-US",{timeZone:"Europe/Berlin",hour12:false,
     year:"numeric",month:"2-digit",day:"2-digit",hour:"2-digit",minute:"2-digit",second:"2-digit"});
-  const p = {}; dtf.formatToParts(date).forEach(x=>{ if(x.type!=="literal") p[x.type]=x.value; });
+  const p={}; dtf.formatToParts(date).forEach(x=>{ if(x.type!=="literal") p[x.type]=x.value; });
   let hh = p.hour==="24" ? 0 : +p.hour;
-  const asUTC = Date.UTC(+p.year, +p.month-1, +p.day, hh, +p.minute, +p.second);
-  return Math.round((asUTC - date.getTime())/60000);  // Minuten, die Berlin vor UTC liegt
+  const asUTC = Date.UTC(+p.year,+p.month-1,+p.day,hh,+p.minute,+p.second);
+  return Math.round((asUTC - date.getTime())/60000);
 }
-function berlin8amUTCms(y, m, d){ // m 1-indexiert
-  const guess = new Date(Date.UTC(y, m-1, d, 8, 0, 0));
-  const off = berlinOffsetMin(guess);
-  return Date.UTC(y, m-1, d, 8, 0, 0) - off*60000;
+function berlin8amUTCms(y,m,d){
+  const guess = new Date(Date.UTC(y,m-1,d,8,0,0));
+  return Date.UTC(y,m-1,d,8,0,0) - berlinOffsetMin(guess)*60000;
 }
 function keyOf(date){
   return `${date.getUTCFullYear()}-${String(date.getUTCMonth()+1).padStart(2,"0")}-${String(date.getUTCDate()).padStart(2,"0")}`;
 }
 function shortLabel(y,m,d){ return `${d}.${m}.`; }
-
-// Alle Spar-Montage, deren 08:00 Berlin bereits vorbei ist
 function getMondays(){
-  const out = [];
-  let cur = new Date(Date.UTC(START.y, START.m-1, START.d));
-  const now = Date.now();
-  let guard = 0;
-  while(guard++ < 5200){
-    const y=cur.getUTCFullYear(), m=cur.getUTCMonth()+1, d=cur.getUTCDate();
-    const ts = berlin8amUTCms(y,m,d);
-    if(ts > now) break;
-    out.push({ key:`${y}-${String(m).padStart(2,"0")}-${String(d).padStart(2,"0")}`, y, m, d, ts });
-    cur = new Date(cur.getTime() + 7*86400000);
+  const out=[]; let cur=new Date(Date.UTC(START.y,START.m-1,START.d)); const now=Date.now(); let g=0;
+  while(g++<5200){
+    const y=cur.getUTCFullYear(),m=cur.getUTCMonth()+1,d=cur.getUTCDate();
+    const ts=berlin8amUTCms(y,m,d);
+    if(ts>now) break;
+    out.push({ key:`${y}-${String(m).padStart(2,"0")}-${String(d).padStart(2,"0")}`, y,m,d,ts });
+    cur=new Date(cur.getTime()+7*86400000);
   }
   return out;
 }
 
-// ------------------------------- API -------------------------------------
-async function fetchJSON(path){
-  let err;
-  for(const base of BASES){
-    try{
-      const r = await fetch(base+path, {cache:"no-store"});
-      if(!r.ok) throw new Error("HTTP "+r.status);
-      return await r.json();
-    }catch(e){ err = e; }
-  }
-  throw err;
+// ---- Cache ----
+function loadCache(k){ try{ return JSON.parse(localStorage.getItem(k))||{}; }catch(e){ return {}; } }
+function saveCache(k,v){ try{ localStorage.setItem(k,JSON.stringify(v)); }catch(e){} }
+
+// ---- Multi-Source Preis-Layer (browser-tauglich, CORS-sicher) ----
+async function getJSON(url){
+  const r = await fetch(url, {cache:"no-store"});
+  if(!r.ok) throw new Error("HTTP "+r.status);
+  return r.json();
 }
-async function mondayOpen(ts){
-  const data = await fetchJSON(`/api/v3/klines?symbol=${SYMBOL}&interval=1m&startTime=${ts}&limit=1`);
-  if(!data || !data.length) throw new Error("keine Kerze");
-  return parseFloat(data[0][1]);   // open
-}
-async function fetchDaily(startMs){
-  const data = await fetchJSON(`/api/v3/klines?symbol=${SYMBOL}&interval=1d&startTime=${startMs}&limit=1000`);
-  return data;                      // [ [openTime,o,h,l,close,...], ... ]
-}
+// aktueller BTC/EUR-Kurs
 async function fetchCurrent(){
-  const d = await fetchJSON(`/api/v3/ticker/price?symbol=${SYMBOL}`);
-  return parseFloat(d.price);
+  const srcs = [
+    async()=>{ const j=await getJSON("https://min-api.cryptocompare.com/data/price?fsym=BTC&tsyms=EUR"); if(!j.EUR) throw 0; return j.EUR; },
+    async()=>{ const j=await getJSON("https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=eur"); return j.bitcoin.eur; },
+    async()=>{ const j=await getJSON("https://api.exchange.coinbase.com/products/BTC-EUR/ticker"); return parseFloat(j.price); },
+  ];
+  for(const s of srcs){ try{ const v=await s(); if(v) return v; }catch(e){} }
+  throw new Error("kein Kurs");
+}
+// Tagesschlusskurse seit Start -> {dateKey: close}
+async function fetchDailyCloses(){
+  const daysSince = Math.ceil((Date.now()-Date.UTC(START.y,START.m-1,START.d))/86400000)+2;
+  const lim = Math.max(2, Math.min(daysSince, 2000));
+  const srcs = [
+    async()=>{ const j=await getJSON(`https://min-api.cryptocompare.com/data/v2/histoday?fsym=BTC&tsym=EUR&limit=${lim}`);
+      if(j.Response!=="Success") throw 0; const o={}; j.Data.Data.forEach(d=>{ if(d.close>0) o[keyOf(new Date(d.time*1000))]=d.close; }); return o; },
+    async()=>{ const j=await getJSON(`https://api.coingecko.com/api/v3/coins/bitcoin/market_chart?vs_currency=eur&days=${Math.min(daysSince,365)}`);
+      const o={}; (j.prices||[]).forEach(p=>{ o[keyOf(new Date(p[0]))]=p[1]; }); return o; },
+  ];
+  for(const s of srcs){ try{ const o=await s(); if(o&&Object.keys(o).length) return o; }catch(e){} }
+  return {};
+}
+// Preis zu einem bestimmten Zeitpunkt (Montag 08:00)
+async function fetchPriceAt(ts){
+  const sec = Math.floor(ts/1000);
+  const srcs = [
+    async()=>{ const j=await getJSON(`https://min-api.cryptocompare.com/data/v2/histohour?fsym=BTC&tsym=EUR&limit=1&toTs=${sec}`);
+      if(j.Response!=="Success"||!j.Data.Data.length) throw 0; const a=j.Data.Data; return a[a.length-1].close; },
+    async()=>{ const j=await getJSON(`https://api.coingecko.com/api/v3/coins/bitcoin/market_chart/range?vs_currency=eur&from=${sec-5400}&to=${sec+5400}`);
+      if(!j.prices||!j.prices.length) throw 0; let b=j.prices[0]; for(const p of j.prices){ if(Math.abs(p[0]-ts)<Math.abs(b[0]-ts)) b=p; } return b[1]; },
+  ];
+  for(const s of srcs){ try{ const v=await s(); if(v) return v; }catch(e){} }
+  throw new Error("kein Montagskurs");
 }
 
-// ------------------------------- Cache -----------------------------------
-function loadCache(k){ try{ return JSON.parse(localStorage.getItem(k)) || {}; }catch(e){ return {}; } }
-function saveCache(k,v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch(e){} }
-
-// ------------------------------- State -----------------------------------
+// ---- State ----
 let state = { mondays:[], prices:{}, daily:{}, current:null };
-let chart = null;
+let chart=null, priceChart=null;
 let ui = { unit:"eur", mode:"milestones", pnlPeriod:"all", showTranches:true };
 
-function setStatus(offline){
-  document.getElementById("dot").className = "dot" + (offline?" off":"");
-  document.getElementById("statusText").textContent = offline ? "offline (Cache)" : "aktuell";
+function setStatus(off){
+  document.getElementById("dot").className="dot"+(off?" off":"");
+  document.getElementById("statusText").textContent= off?"teilweise offline":"aktuell";
 }
-function showWarn(msg){
-  const w = document.getElementById("warn");
-  if(msg){ w.textContent = msg; w.classList.add("show"); }
-  else { w.classList.remove("show"); }
-}
+function showWarn(m){ const w=document.getElementById("warn"); if(m){w.textContent=m; w.classList.add("show");} else w.classList.remove("show"); }
 
-// ------------------------------- Laden -----------------------------------
 async function refresh(){
   const mondays = getMondays();
   const prices = loadCache(PRICE_KEY);
-  const daily  = loadCache(DAILY_KEY);
-  let offline = false;
+  let daily = loadCache(DAILY_KEY);
+  let offline=false;
 
-  // fehlende Montagskurse sekundengenau nachladen
   for(const mo of mondays){
-    if(prices[mo.key] == null){
-      try{ prices[mo.key] = await mondayOpen(mo.ts); }
-      catch(e){ offline = true; }
+    if(prices[mo.key]==null){
+      try{ prices[mo.key]=await fetchPriceAt(mo.ts); }catch(e){ offline=true; }
     }
   }
   saveCache(PRICE_KEY, prices);
 
-  // Tageskurse fuer den Live-Verlauf (ein Aufruf deckt >2,7 Jahre ab)
-  try{
-    const rows = await fetchDaily(Date.UTC(START.y, START.m-1, START.d));
-    rows.forEach(r=>{ daily[keyOf(new Date(r[0]))] = parseFloat(r[4]); });
-    saveCache(DAILY_KEY, daily);
-  }catch(e){ offline = true; }
+  try{ const d=await fetchDailyCloses(); if(Object.keys(d).length){ daily={...daily,...d}; saveCache(DAILY_KEY,daily); } }
+  catch(e){ offline=true; }
 
-  // aktueller Kurs
-  let current = null;
-  try{ current = await fetchCurrent(); }
-  catch(e){
-    offline = true;
-    const ks = Object.keys(daily).sort();
-    if(ks.length) current = daily[ks[ks.length-1]];
-  }
+  let current=null;
+  try{ current=await fetchCurrent(); }
+  catch(e){ offline=true; const ks=Object.keys(daily).sort(); if(ks.length) current=daily[ks[ks.length-1]]; }
 
-  state = { mondays, prices, daily, current };
+  state={ mondays, prices, daily, current };
   setStatus(offline);
-  showWarn(offline ? "Binance gerade nicht erreichbar \u2013 es werden zwischengespeicherte Daten angezeigt." : "");
-  const now = new Date();
-  document.getElementById("updated").textContent = " \u00B7 Stand " + now.toLocaleString("de-DE",{hour:"2-digit",minute:"2-digit"});
+  showWarn(offline ? "Manche Kurse waren gerade nicht abrufbar \u2013 es werden zwischengespeicherte Daten genutzt." : "");
+  document.getElementById("updated").textContent=" \u00B7 Stand "+new Date().toLocaleString("de-DE",{hour:"2-digit",minute:"2-digit"});
   render();
 }
 
-// ----------------------------- Berechnung --------------------------------
+// ---- Berechnung ----
 function tranches(){
-  const t = [];
-  let cumEur=0, cumBtc=0;
+  const t=[]; let cumEur=0,cumBtc=0;
   for(const mo of state.mondays){
-    const price = state.prices[mo.key];
-    if(price==null) continue;
-    const amt = NET_EUR/price;
-    cumEur += WEEKLY_EUR; cumBtc += amt;
-    t.push({ ...mo, price, btc:amt, cumEur, cumBtc });
+    const price=state.prices[mo.key]; if(price==null) continue;
+    const amt=NET_EUR/price; cumEur+=WEEKLY_EUR; cumBtc+=amt;
+    t.push({...mo, price, btc:amt, cumEur, cumBtc});
   }
   return t;
 }
-function closeOnOrBefore(ms){
-  for(let i=0;i<21;i++){
-    const k = keyOf(new Date(ms - i*86400000));
-    if(state.daily[k]!=null) return state.daily[k];
-  }
-  return null;
-}
-function btcHeldAt(ms, t){
-  let b=0;
-  for(const x of t){ if(x.ts<=ms) b=x.cumBtc; }
-  return b;
-}
+function closeOnOrBefore(ms){ for(let i=0;i<21;i++){ const k=keyOf(new Date(ms-i*86400000)); if(state.daily[k]!=null) return state.daily[k]; } return null; }
+function btcHeldAt(ms,t){ let b=0; for(const x of t){ if(x.ts<=ms) b=x.cumBtc; } return b; }
 
-// ------------------------------- Render ----------------------------------
 function render(){
-  const t = tranches();
-  const investedGross = t.length * WEEKLY_EUR;
-  const totalBtc = t.length ? t[t.length-1].cumBtc : 0;
-  const avg = totalBtc ? investedGross/totalBtc : null;
-  const cur = state.current;
-  const value = (cur!=null && t.length) ? totalBtc*cur : null;
-  const pnl = (value!=null) ? value-investedGross : null;
-  const pnlPct = (value!=null && investedGross>0) ? pnl/investedGross*100 : null;
+  const t=tranches();
+  const investedGross=t.length*WEEKLY_EUR;
+  const totalBtc=t.length?t[t.length-1].cumBtc:0;
+  const avg=totalBtc?investedGross/totalBtc:null;
+  const cur=state.current;
+  const value=(cur!=null&&t.length)?totalBtc*cur:null;
+  const pnl=(value!=null)?value-investedGross:null;
+  const pnlPct=(value!=null&&investedGross>0)?pnl/investedGross*100:null;
 
-  // KPIs
-  document.getElementById("kInvested").textContent = t.length ? eur(investedGross) : "\u2013";
-  document.getElementById("kBtc").textContent = t.length ? btcf(totalBtc) : "\u2013";
-  document.getElementById("kAvg").textContent = avg!=null ? eur(avg) : "\u2013";
+  document.getElementById("kInvested").textContent=t.length?eur(investedGross):"\u2013";
+  document.getElementById("kBtc").textContent=t.length?btcf(totalBtc):"\u2013";
+  document.getElementById("kAvg").textContent=avg!=null?eur(avg):"\u2013";
 
-  // G/V mit Zeitfenster
-  const kPnl = document.getElementById("kPnl");
-  if(value==null){
-    kPnl.textContent = "\u2013"; kPnl.className = "v small";
-  } else if(ui.pnlPeriod==="all"){
-    kPnl.textContent = (pnl>=0?"+":"") + eur(pnl) + "  (" + pctf(pnlPct) + ")";
-    kPnl.className = "v small " + (pnl>=0?"pos":"neg");
+  const kPnl=document.getElementById("kPnl");
+  if(value==null){ kPnl.textContent="\u2013"; kPnl.className="v small"; }
+  else if(ui.pnlPeriod==="all"){
+    kPnl.textContent=(pnl>=0?"+":"")+eur(pnl)+"  ("+pctf(pnlPct)+")"; kPnl.className="v small "+(pnl>=0?"pos":"neg");
   } else {
-    const days = +ui.pnlPeriod;
-    const past = (function(){
-      const c = closeOnOrBefore(Date.now()-days*86400000);
-      if(c==null) return null;
-      return btcHeldAt(Date.now()-days*86400000, t) * c;
-    })();
-    if(past==null){ kPnl.textContent = "\u2013"; kPnl.className="v small"; }
-    else{
-      const delta = value - past;
-      const dpct = past>0 ? delta/past*100 : null;
-      kPnl.textContent = (delta>=0?"+":"") + eur(delta) + "  (" + pctf(dpct) + ")";
-      kPnl.className = "v small " + (delta>=0?"pos":"neg");
-    }
+    const days=+ui.pnlPeriod; const c=closeOnOrBefore(Date.now()-days*86400000);
+    const past=(c==null)?null:btcHeldAt(Date.now()-days*86400000,t)*c;
+    if(past==null){ kPnl.textContent="\u2013"; kPnl.className="v small"; }
+    else{ const dl=value-past; const dp=past>0?dl/past*100:null;
+      kPnl.textContent=(dl>=0?"+":"")+eur(dl)+"  ("+pctf(dp)+")"; kPnl.className="v small "+(dl>=0?"pos":"neg"); }
   }
 
-  renderTranches(t, cur);
-  renderChart(t, cur, totalBtc, investedGross, value);
+  renderTranches(t,cur);
+  renderChart(t,cur,totalBtc,investedGross,value);
 }
 
-function renderTranches(t, cur){
-  const box = document.getElementById("tranchesBox");
-  if(!ui.showTranches){ box.style.display="none"; return; }
-  box.style.display="block";
-  if(!t.length){
-    box.innerHTML = '<div class="empty">Noch keine K&auml;ufe. Der erste Spar-Montag ist der 08.06.2026 &ndash; ab dann f&uuml;llt sich die Tabelle automatisch.</div>';
-    return;
-  }
-  let rows = "";
-  for(let i=t.length-1;i>=0;i--){
-    const x = t[i];
-    const val = cur!=null ? x.btc*cur : null;
-    const pnl = val!=null ? val-WEEKLY_EUR : null;
-    const pct = pnl!=null ? pnl/WEEKLY_EUR*100 : null;
-    const cls = pnl==null ? "" : (pnl>=0?"pos":"neg");
-    rows += `<tr>
-      <td>${String(x.d).padStart(2,"0")}.${String(x.m).padStart(2,"0")}.${x.y}</td>
-      <td class="mono">${eur0(x.price)}</td>
+function renderTranches(t,cur){
+  const box=document.getElementById("tranchesBox");
+  if(!ui.showTranches){ box.style.display="none"; return; } box.style.display="block";
+  if(!t.length){ box.innerHTML='<div class="empty">Noch keine K&auml;ufe. Der erste Spar-Montag ist der 08.06.2026 &ndash; ab dann f&uuml;llt sich die Tabelle automatisch.</div>'; return; }
+  let rows="";
+  for(let i=t.length-1;i>=0;i--){ const x=t[i]; const val=cur!=null?x.btc*cur:null; const pnl=val!=null?val-WEEKLY_EUR:null;
+    const pct=pnl!=null?pnl/WEEKLY_EUR*100:null; const cls=pnl==null?"":(pnl>=0?"pos":"neg");
+    rows+=`<tr><td>${String(x.d).padStart(2,"0")}.${String(x.m).padStart(2,"0")}.${x.y}</td>
+      <td class="mono">${eur(x.price)}</td>
       <td class="mono">${x.btc.toLocaleString("de-DE",{minimumFractionDigits:8,maximumFractionDigits:8})}</td>
       <td class="mono">${eur(WEEKLY_EUR)}</td>
       <td class="mono">${val!=null?eur(val):"\u2013"}</td>
       <td class="mono ${cls}">${pnl!=null?(pnl>=0?"+":"")+eur(pnl):"\u2013"}</td>
-      <td class="mono ${cls}">${pctf(pct)}</td>
-    </tr>`;
-  }
-  box.innerHTML = `<table>
-    <thead><tr>
-      <th>Datum</th><th>Kurs</th><th>BTC</th><th>Invest.</th><th>Wert</th><th>G/V</th><th>%</th>
-    </tr></thead>
-    <tbody>${rows}</tbody>
-  </table>`;
+      <td class="mono ${cls}">${pctf(pct)}</td></tr>`; }
+  box.innerHTML=`<table><thead><tr><th>Datum</th><th>Kurs</th><th>BTC</th><th>Invest.</th><th>Wert</th><th>G/V</th><th>%</th></tr></thead><tbody>${rows}</tbody></table>`;
 }
 
-function renderChart(t, cur, totalBtc, investedGross, value){
-  const ctx = document.getElementById("chart").getContext("2d");
-  let labels=[], datasets=[];
-  const accent = "#f7931a", muted = "#8a8a92";
-
-  if(!t.length){
-    if(chart){ chart.destroy(); chart=null; }
-    ctx.save();
+function renderChart(t,cur,totalBtc,investedGross,value){
+  const ctx=document.getElementById("chart").getContext("2d");
+  const accent="#f7931a", muted="#8a8a92";
+  if(!t.length){ if(chart){chart.destroy();chart=null;}
     ctx.clearRect(0,0,ctx.canvas.width,ctx.canvas.height);
-    ctx.fillStyle = muted; ctx.font = "14px system-ui"; ctx.textAlign="center";
-    ctx.fillText("Noch keine Daten \u2013 Start am 08.06.2026", ctx.canvas.width/2/ (window.devicePixelRatio||1), 80);
-    ctx.restore();
-    return;
-  }
-
+    ctx.fillStyle=muted; ctx.font="14px system-ui"; ctx.textAlign="center";
+    ctx.fillText("Noch keine Daten \u2013 Start am 08.06.2026", ctx.canvas.width/2/(window.devicePixelRatio||1), 80); return; }
+  let labels=[], datasets=[];
   if(ui.mode==="milestones"){
-    labels = t.map(x=>shortLabel(x.y,x.m,x.d)).concat(["Heute"]);
+    labels=t.map(x=>shortLabel(x.y,x.m,x.d)).concat(["Heute"]);
     if(ui.unit==="eur"){
-      const invested = t.map(x=>x.cumEur).concat([investedGross]);
-      const worth = t.map(x=>x.cumBtc*x.price).concat([ value!=null ? value : t[t.length-1].cumBtc*t[t.length-1].price ]);
-      datasets = [
-        { label:"Investiert", data:invested, borderColor:muted, borderDash:[5,4], borderWidth:1.5,
-          pointRadius:2, stepped:true, fill:false },
-        { label:"Wert", data:worth, borderColor:accent, borderWidth:2.5, pointRadius:2.5,
-          stepped:true, backgroundColor:"rgba(247,147,26,.12)", fill:true },
-      ];
-    } else {
-      const cumbtc = t.map(x=>x.cumBtc).concat([totalBtc]);
-      datasets = [{ label:"BTC gesamt", data:cumbtc, borderColor:accent, borderWidth:2.5,
-        pointRadius:2.5, stepped:true, backgroundColor:"rgba(247,147,26,.12)", fill:true }];
-    }
+      const inv=t.map(x=>x.cumEur).concat([investedGross]);
+      const wert=t.map(x=>x.cumBtc*x.price).concat([ value!=null?value:t[t.length-1].cumBtc*t[t.length-1].price ]);
+      datasets=[{label:"Investiert",data:inv,borderColor:muted,borderDash:[5,4],borderWidth:1.5,pointRadius:2,stepped:true,fill:false},
+                {label:"Wert",data:wert,borderColor:accent,borderWidth:2.5,pointRadius:2.5,stepped:true,backgroundColor:"rgba(247,147,26,.12)",fill:true}];
+    } else { const cb=t.map(x=>x.cumBtc).concat([totalBtc]);
+      datasets=[{label:"BTC gesamt",data:cb,borderColor:accent,borderWidth:2.5,pointRadius:2.5,stepped:true,backgroundColor:"rgba(247,147,26,.12)",fill:true}]; }
   } else {
-    // Live-Verlauf: taeglich von Start bis heute
-    const startMs = t[0].ts, today = Date.now();
-    const days=[], invested=[], worth=[], cumbtc=[];
-    let lastClose = t[0].price;
-    for(let ms=startMs; ms<=today+1; ms+=86400000){
-      const d = new Date(ms);
-      const k = keyOf(d);
-      if(state.daily[k]!=null) lastClose = state.daily[k];
-      let cb=0, inv=0;
-      for(const x of t){ if(x.ts<=ms){ cb=x.cumBtc; inv=x.cumEur; } }
-      days.push(shortLabel(d.getUTCFullYear(),d.getUTCMonth()+1,d.getUTCDate()));
-      invested.push(inv); worth.push(cb*lastClose); cumbtc.push(cb);
-    }
-    labels = days;
+    const startMs=t[0].ts, today=Date.now(); const days=[],inv=[],wert=[],cb=[]; let lastClose=t[0].price;
+    for(let ms=startMs; ms<=today+1; ms+=86400000){ const d=new Date(ms); const k=keyOf(d); if(state.daily[k]!=null) lastClose=state.daily[k];
+      let b=0,iv=0; for(const x of t){ if(x.ts<=ms){ b=x.cumBtc; iv=x.cumEur; } }
+      days.push(shortLabel(d.getUTCFullYear(),d.getUTCMonth()+1,d.getUTCDate())); inv.push(iv); wert.push(b*lastClose); cb.push(b); }
+    labels=days;
     if(ui.unit==="eur"){
-      datasets = [
-        { label:"Investiert", data:invested, borderColor:muted, borderDash:[5,4], borderWidth:1.5,
-          pointRadius:0, stepped:true, fill:false },
-        { label:"Wert", data:worth, borderColor:accent, borderWidth:2, pointRadius:0,
-          tension:.12, backgroundColor:"rgba(247,147,26,.12)", fill:true },
-      ];
-    } else {
-      datasets = [{ label:"BTC gesamt", data:cumbtc, borderColor:accent, borderWidth:2,
-        pointRadius:0, stepped:true, backgroundColor:"rgba(247,147,26,.12)", fill:true }];
-    }
+      datasets=[{label:"Investiert",data:inv,borderColor:muted,borderDash:[5,4],borderWidth:1.5,pointRadius:0,stepped:true,fill:false},
+                {label:"Wert",data:wert,borderColor:accent,borderWidth:2,pointRadius:0,tension:.12,backgroundColor:"rgba(247,147,26,.12)",fill:true}];
+    } else { datasets=[{label:"BTC gesamt",data:cb,borderColor:accent,borderWidth:2,pointRadius:0,stepped:true,backgroundColor:"rgba(247,147,26,.12)",fill:true}]; }
   }
-
-  const isEur = ui.unit==="eur";
-  const cfg = {
-    type:"line",
-    data:{ labels, datasets },
-    options:{
-      responsive:true, maintainAspectRatio:false,
-      interaction:{ mode:"index", intersect:false },
-      plugins:{
-        legend:{ labels:{ color:"#cfcfd6", boxWidth:14, font:{size:12} } },
-        tooltip:{
-          backgroundColor:"#101015", borderColor:"#26262c", borderWidth:1,
-          titleColor:"#8a8a92", bodyColor:"#ececee",
-          callbacks:{ label:(c)=> ` ${c.dataset.label}: ${isEur?eur(c.parsed.y):btcf(c.parsed.y)}` }
-        }
-      },
-      scales:{
-        x:{ grid:{ color:"#1c1c22" }, ticks:{ color:"#8a8a92", maxTicksLimit:8, font:{size:10} } },
-        y:{ grid:{ color:"#1c1c22" }, ticks:{ color:"#8a8a92", font:{size:10},
-            callback:(v)=> isEur ? Math.round(v)+"\u00A0\u20AC" : (+v).toFixed(4) } }
-      }
-    }
-  };
-  if(chart){ chart.destroy(); }
-  chart = new Chart(ctx, cfg);
+  const isEur=ui.unit==="eur";
+  if(chart) chart.destroy();
+  chart=new Chart(ctx,{ type:"line", data:{labels,datasets}, options:{ responsive:true, maintainAspectRatio:false,
+    interaction:{mode:"index",intersect:false},
+    plugins:{ legend:{labels:{color:"#cfcfd6",boxWidth:14,font:{size:12}}},
+      tooltip:{backgroundColor:"#101015",borderColor:"#26262c",borderWidth:1,titleColor:"#8a8a92",bodyColor:"#ececee",
+        callbacks:{label:c=>` ${c.dataset.label}: ${isEur?eur(c.parsed.y):btcf(c.parsed.y)}`}}},
+    scales:{ x:{grid:{color:"#1c1c22"},ticks:{color:"#8a8a92",maxTicksLimit:8,font:{size:10}}},
+      y:{grid:{color:"#1c1c22"},ticks:{color:"#8a8a92",font:{size:10},callback:v=>isEur?Math.round(v)+"\u00A0\u20AC":(+v).toFixed(4)}} } } });
 }
 
-// ------------------------------- Backup ----------------------------------
-function exportJSON(){
-  const blob = new Blob([JSON.stringify({
-    exported: new Date().toISOString(),
-    [PRICE_KEY]: loadCache(PRICE_KEY),
-    [DAILY_KEY]: loadCache(DAILY_KEY)
-  }, null, 2)], {type:"application/json"});
-  const a = document.createElement("a");
-  a.href = URL.createObjectURL(blob);
-  a.download = "btc-sparplan-backup.json";
-  a.click();
-  URL.revokeObjectURL(a.href);
-}
-function importJSON(file){
-  const reader = new FileReader();
-  reader.onload = () => {
-    try{
-      const obj = JSON.parse(reader.result);
-      if(obj[PRICE_KEY]) saveCache(PRICE_KEY, obj[PRICE_KEY]);
-      if(obj[DAILY_KEY]) saveCache(DAILY_KEY, obj[DAILY_KEY]);
-      showWarn("");
-      refresh();
-    }catch(e){ showWarn("Import fehlgeschlagen \u2013 ung\u00FCltige Datei."); }
-  };
-  reader.readAsText(file);
-}
-
-// ------------------------------- Events ----------------------------------
-function bindGroup(id, key, after){
-  document.getElementById(id).addEventListener("click", e=>{
-    const chip = e.target.closest(".chip"); if(!chip) return;
-    [...e.currentTarget.querySelectorAll(".chip")].forEach(c=>c.classList.remove("active"));
-    chip.classList.add("active");
-    ui[key] = chip.dataset[after];
-    render();
-  });
-}
-bindGroup("unitGroup","unit","u");
-bindGroup("modeGroup","mode","m");
-document.getElementById("pnlChips").addEventListener("click", e=>{
-  const chip = e.target.closest(".chip"); if(!chip) return;
-  [...document.getElementById("pnlChips").querySelectorAll(".chip")].forEach(c=>c.classList.remove("active"));
-  chip.classList.add("active");
-  ui.pnlPeriod = chip.dataset.p;
-  render();
-});
-document.getElementById("toggleTranches").addEventListener("click", e=>{
-  ui.showTranches = !ui.showTranches;
-  e.target.textContent = ui.showTranches ? "ausblenden" : "anzeigen";
-  render();
-});
-document.getElementById("btnExport").addEventListener("click", exportJSON);
-document.getElementById("btnImport").addEventListener("click", ()=>document.getElementById("fileImport").click());
-document.getElementById("fileImport").addEventListener("change", e=>{ if(e.target.files[0]) importJSON(e.target.files[0]); });
-document.getElementById("btnRefresh").addEventListener("click", refresh);
-
-// ---- BTC Preisverlauf ----
-let priceChart = null;
+// ---- Preisverlauf (eigener Chart, Mehrquellen) ----
 const RANGES = {
-  "1h":  { interval:"1m",  limit:60  },
-  "1d":  { interval:"1h",  limit:24  },
-  "1w":  { interval:"4h",  limit:42  },
-  "1m":  { interval:"1d",  limit:30  },
-  "1y":  { interval:"1w",  limit:52  },
-  "2y":  { interval:"1w",  limit:104 },
-  "5y":  { interval:"1w",  limit:260 },
-  "10y": { interval:"1M",  limit:120 },
+  "1h":  { cc:{ep:"histominute",limit:60},        cg:1    },
+  "1d":  { cc:{ep:"histohour",  limit:24},        cg:1    },
+  "1w":  { cc:{ep:"histohour",  limit:168},       cg:7    },
+  "1m":  { cc:{ep:"histoday",   limit:30},        cg:30   },
+  "1y":  { cc:{ep:"histoday",   limit:365},       cg:365  },
+  "2y":  { cc:{ep:"histoday",   limit:730},       cg:730  },
+  "5y":  { cc:{ep:"histoday",   limit:260,agg:7}, cg:1825 },
+  "10y": { cc:{ep:"histoday",   limit:520,agg:7}, cg:3650 },
 };
-function fmtPriceLabel(ts, range){
-  const d = new Date(ts);
+function fmtPriceLabel(ts,range){ const d=new Date(ts);
   if(range==="1h"||range==="1d") return d.toLocaleTimeString("de-DE",{hour:"2-digit",minute:"2-digit"});
   if(range==="1w"||range==="1m"||range==="1y") return d.toLocaleDateString("de-DE",{day:"2-digit",month:"2-digit"});
-  return d.toLocaleDateString("de-DE",{month:"2-digit",year:"2-digit"});
+  return d.toLocaleDateString("de-DE",{month:"2-digit",year:"2-digit"}); }
+async function priceSeries(range){
+  const cfg=RANGES[range];
+  // 1) CryptoCompare (EUR nativ)
+  try{ let u=`https://min-api.cryptocompare.com/data/v2/${cfg.cc.ep}?fsym=BTC&tsym=EUR&limit=${cfg.cc.limit}`; if(cfg.cc.agg) u+=`&aggregate=${cfg.cc.agg}`;
+    const j=await getJSON(u); if(j.Response==="Success"&&j.Data&&j.Data.Data){ const a=j.Data.Data.filter(d=>d.close>0); if(a.length) return a.map(d=>({t:d.time*1000,c:d.close})); } }catch(e){}
+  // 2) CoinGecko (EUR nativ)
+  try{ const j=await getJSON(`https://api.coingecko.com/api/v3/coins/bitcoin/market_chart?vs_currency=eur&days=${cfg.cg}`);
+    if(j.prices&&j.prices.length) return j.prices.map(p=>({t:p[0],c:p[1]})); }catch(e){}
+  throw new Error("alle Quellen fehlgeschlagen");
 }
 async function loadPriceChart(range){
-  const cfg = RANGES[range];
-  const el = document.getElementById("priceRange");
-  el.textContent = "lade\u2026";
-  try{
-    // BTCEUR klines sind für EU-Nutzer deaktiviert.
-    // Wir holen BTCUSDT-Kerzen und rechnen mit dem Live EUR/USDT-Kurs um.
-    const base = "https://api.binance.com";
-    const [klines, eurTick, usdtTick] = await Promise.all([
-      fetch(`${base}/api/v3/klines?symbol=BTCUSDT&interval=${cfg.interval}&limit=${cfg.limit}`,{cache:"no-store"}).then(r=>{ if(!r.ok) throw new Error("HTTP "+r.status); return r.json(); }),
-      fetch(`${base}/api/v3/ticker/price?symbol=BTCEUR`,{cache:"no-store"}).then(r=>r.json()),
-      fetch(`${base}/api/v3/ticker/price?symbol=BTCUSDT`,{cache:"no-store"}).then(r=>r.json()),
-    ]);
-    if(!Array.isArray(klines)||!klines.length) throw new Error("Keine Daten");
-    const eurRatio = parseFloat(eurTick.price) / parseFloat(usdtTick.price);
-    const labels = klines.map(k => fmtPriceLabel(k[0], range));
-    const closes = klines.map(k => parseFloat(k[4]) * eurRatio);
-    const first = closes[0], last = closes[closes.length-1];
-    const up = last >= first;
-    const diff = (last - first) / first * 100;
-    const col = up ? "#3fb950" : "#f85149";
-    el.textContent = (up ? "+" : "") + diff.toFixed(2) + " %";
-    el.style.color = col;
-    const ctx2 = document.getElementById("priceChart").getContext("2d");
-    if(priceChart) priceChart.destroy();
-    priceChart = new Chart(ctx2, {
-      type: "line",
-      data: { labels, datasets:[{
-        data: closes, borderColor: col, borderWidth: 2, pointRadius: 0, tension: .1,
-        fill: true, backgroundColor: up ? "rgba(63,185,80,.08)" : "rgba(248,81,73,.08)"
-      }]},
-      options:{
-        responsive: true, maintainAspectRatio: false,
-        plugins:{ legend:{display:false}, tooltip:{
-          backgroundColor:"#101015", borderColor:"#26262c", borderWidth:1,
-          bodyColor:"#ececee", titleColor:"#8a8a92",
-          callbacks:{ label: c => " " + c.parsed.y.toLocaleString("de-DE",{style:"currency",currency:"EUR"}) }
-        }},
-        scales:{
-          x:{ grid:{color:"#1c1c22"}, ticks:{color:"#8a8a92", maxTicksLimit:8, font:{size:10}}, border:{display:false} },
-          y:{ position:"right", grid:{color:"#1c1c22"}, border:{display:false},
-              ticks:{color:"#8a8a92", font:{size:10}, callback: v => Math.round(v).toLocaleString("de-DE")+"\u00A0\u20AC"} }
-        }
-      }
-    });
-  }catch(e){
-    el.innerHTML = 'gerade nicht abrufbar &nbsp;<button onclick="loadPriceChart(document.querySelector(\'#rangeChips .chip.active\').dataset.r)" style="background:#1a1a20;border:1px solid #26262c;color:#cfcfd6;border-radius:8px;padding:3px 10px;font-size:11px;cursor:pointer">&#8635; nochmal</button>';
-    el.style.color = "var(--muted)";
-  }
+  const el=document.getElementById("priceRange"); el.textContent="lade\u2026"; el.style.color="var(--muted)";
+  let pts;
+  try{ pts=await priceSeries(range); }
+  catch(e){ el.innerHTML='gerade nicht abrufbar<button class="mini-btn" onclick="loadPriceChart(document.querySelector(\'#rangeChips .chip.active\').dataset.r)">&#8635; nochmal</button>'; return; }
+  const labels=pts.map(p=>fmtPriceLabel(p.t,range)); const closes=pts.map(p=>p.c);
+  const first=closes[0], last=closes[closes.length-1]; const up=last>=first; const diff=(last-first)/first*100;
+  const col=up?"#3fb950":"#f85149"; el.textContent=(up?"+":"")+diff.toFixed(2)+" %"; el.style.color=col;
+  const ctx=document.getElementById("priceChart").getContext("2d"); if(priceChart) priceChart.destroy();
+  priceChart=new Chart(ctx,{ type:"line", data:{labels,datasets:[{data:closes,borderColor:col,borderWidth:2,pointRadius:0,tension:.1,fill:true,backgroundColor:up?"rgba(63,185,80,.08)":"rgba(248,81,73,.08)"}]},
+    options:{ responsive:true, maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{backgroundColor:"#101015",borderColor:"#26262c",borderWidth:1,bodyColor:"#ececee",titleColor:"#8a8a92",
+        callbacks:{label:c=>" "+c.parsed.y.toLocaleString("de-DE",{style:"currency",currency:"EUR"})}}},
+      scales:{ x:{grid:{color:"#1c1c22"},ticks:{color:"#8a8a92",maxTicksLimit:8,font:{size:10}},border:{display:false}},
+        y:{position:"right",grid:{color:"#1c1c22"},border:{display:false},ticks:{color:"#8a8a92",font:{size:10},callback:v=>Math.round(v).toLocaleString("de-DE")+"\u00A0\u20AC"}} } } });
 }
-document.getElementById("rangeChips").addEventListener("click", e => {
-  const chip = e.target.closest(".chip"); if(!chip) return;
-  [...document.getElementById("rangeChips").querySelectorAll(".chip")].forEach(c => c.classList.remove("active"));
-  chip.classList.add("active");
-  loadPriceChart(chip.dataset.r);
-});
-loadPriceChart("1m");
 
-// Start
+// ---- Backup ----
+function exportJSON(){
+  const blob=new Blob([JSON.stringify({exported:new Date().toISOString(),[PRICE_KEY]:loadCache(PRICE_KEY),[DAILY_KEY]:loadCache(DAILY_KEY)},null,2)],{type:"application/json"});
+  const a=document.createElement("a"); a.href=URL.createObjectURL(blob); a.download="btc-sparplan-backup.json"; a.click(); URL.revokeObjectURL(a.href);
+}
+function importJSON(file){ const rd=new FileReader();
+  rd.onload=()=>{ try{ const o=JSON.parse(rd.result); if(o[PRICE_KEY]) saveCache(PRICE_KEY,o[PRICE_KEY]); if(o[DAILY_KEY]) saveCache(DAILY_KEY,o[DAILY_KEY]); showWarn(""); refresh(); }catch(e){ showWarn("Import fehlgeschlagen \u2013 ung\u00FCltige Datei."); } };
+  rd.readAsText(file);
+}
+
+// ---- Events ----
+function bindGroup(id,key,attr){ document.getElementById(id).addEventListener("click",e=>{ const c=e.target.closest(".chip"); if(!c) return;
+  [...e.currentTarget.querySelectorAll(".chip")].forEach(x=>x.classList.remove("active")); c.classList.add("active"); ui[key]=c.dataset[attr]; render(); }); }
+bindGroup("unitGroup","unit","u");
+bindGroup("modeGroup","mode","m");
+document.getElementById("pnlChips").addEventListener("click",e=>{ const c=e.target.closest(".chip"); if(!c) return;
+  [...document.getElementById("pnlChips").querySelectorAll(".chip")].forEach(x=>x.classList.remove("active")); c.classList.add("active"); ui.pnlPeriod=c.dataset.p; render(); });
+document.getElementById("rangeChips").addEventListener("click",e=>{ const c=e.target.closest(".chip"); if(!c) return;
+  [...document.getElementById("rangeChips").querySelectorAll(".chip")].forEach(x=>x.classList.remove("active")); c.classList.add("active"); loadPriceChart(c.dataset.r); });
+document.getElementById("toggleTranches").addEventListener("click",e=>{ ui.showTranches=!ui.showTranches; e.target.textContent=ui.showTranches?"ausblenden":"anzeigen"; render(); });
+document.getElementById("btnExport").addEventListener("click",exportJSON);
+document.getElementById("btnImport").addEventListener("click",()=>document.getElementById("fileImport").click());
+document.getElementById("fileImport").addEventListener("change",e=>{ if(e.target.files[0]) importJSON(e.target.files[0]); });
+document.getElementById("btnRefresh").addEventListener("click",()=>{ refresh(); loadPriceChart(document.querySelector("#rangeChips .chip.active").dataset.r); });
+
+// ---- Start ----
+loadPriceChart("1m");
 refresh();
 </script>
 </body>
