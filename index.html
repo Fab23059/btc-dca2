@@ -142,6 +142,25 @@
     <div id="tranchesBox" class="scroll" style="margin-top:12px"></div>
   </div>
 
+  <!-- Preisverlauf -->
+  <div class="card" style="margin-top:12px">
+    <div class="row-between" style="margin-bottom:8px">
+      <div class="label">BTC/EUR Preisverlauf</div>
+      <span id="priceRange" style="font-size:12px;color:var(--muted)"></span>
+    </div>
+    <div class="chips" id="rangeChips" style="margin-bottom:12px">
+      <span class="chip" data-r="1h">1H</span>
+      <span class="chip" data-r="1d">1T</span>
+      <span class="chip" data-r="1w">1W</span>
+      <span class="chip active" data-r="1m">1M</span>
+      <span class="chip" data-r="1y">1J</span>
+      <span class="chip" data-r="2y">2J</span>
+      <span class="chip" data-r="5y">5J</span>
+      <span class="chip" data-r="10y">10J</span>
+    </div>
+    <div class="chart-wrap"><canvas id="priceChart"></canvas></div>
+  </div>
+
   <!-- Backup -->
   <div class="card" style="margin-top:12px">
     <div class="label" style="margin-bottom:10px">Datensicherung</div>
@@ -541,6 +560,73 @@ document.getElementById("btnExport").addEventListener("click", exportJSON);
 document.getElementById("btnImport").addEventListener("click", ()=>document.getElementById("fileImport").click());
 document.getElementById("fileImport").addEventListener("change", e=>{ if(e.target.files[0]) importJSON(e.target.files[0]); });
 document.getElementById("btnRefresh").addEventListener("click", refresh);
+
+// ---- BTC Preisverlauf ----
+let priceChart = null;
+const RANGES = {
+  "1h":  { interval:"1m",  limit:60  },
+  "1d":  { interval:"1h",  limit:24  },
+  "1w":  { interval:"4h",  limit:42  },
+  "1m":  { interval:"1d",  limit:30  },
+  "1y":  { interval:"1w",  limit:52  },
+  "2y":  { interval:"1w",  limit:104 },
+  "5y":  { interval:"1w",  limit:260 },
+  "10y": { interval:"1M",  limit:120 },
+};
+function fmtPriceLabel(ts, range){
+  const d = new Date(ts);
+  if(range==="1h"||range==="1d") return d.toLocaleTimeString("de-DE",{hour:"2-digit",minute:"2-digit"});
+  if(range==="1w"||range==="1m"||range==="1y") return d.toLocaleDateString("de-DE",{day:"2-digit",month:"2-digit"});
+  return d.toLocaleDateString("de-DE",{month:"2-digit",year:"2-digit"});
+}
+async function loadPriceChart(range){
+  const cfg = RANGES[range];
+  const el = document.getElementById("priceRange");
+  el.textContent = "lade\u2026";
+  try{
+    const data = await fetchJSON(`/api/v3/klines?symbol=${SYMBOL}&interval=${cfg.interval}&limit=${cfg.limit}`);
+    const labels = data.map(r => fmtPriceLabel(r[0], range));
+    const closes = data.map(r => parseFloat(r[4]));
+    const first = closes[0], last = closes[closes.length-1];
+    const up = last >= first;
+    const diff = (last - first) / first * 100;
+    const col = up ? "#3fb950" : "#f85149";
+    el.textContent = (up ? "+" : "") + diff.toFixed(2) + " %";
+    el.style.color = col;
+    const ctx2 = document.getElementById("priceChart").getContext("2d");
+    if(priceChart) priceChart.destroy();
+    priceChart = new Chart(ctx2, {
+      type: "line",
+      data: { labels, datasets:[{
+        data: closes, borderColor: col, borderWidth: 2, pointRadius: 0, tension: .1,
+        fill: true, backgroundColor: up ? "rgba(63,185,80,.08)" : "rgba(248,81,73,.08)"
+      }]},
+      options:{
+        responsive: true, maintainAspectRatio: false,
+        plugins:{ legend:{display:false}, tooltip:{
+          backgroundColor:"#101015", borderColor:"#26262c", borderWidth:1,
+          bodyColor:"#ececee", titleColor:"#8a8a92",
+          callbacks:{ label: c => " " + c.parsed.y.toLocaleString("de-DE",{style:"currency",currency:"EUR"}) }
+        }},
+        scales:{
+          x:{ grid:{color:"#1c1c22"}, ticks:{color:"#8a8a92", maxTicksLimit:8, font:{size:10}}, border:{display:false} },
+          y:{ position:"right", grid:{color:"#1c1c22"}, border:{display:false},
+              ticks:{color:"#8a8a92", font:{size:10}, callback: v => Math.round(v).toLocaleString("de-DE")+"\u00A0\u20AC"} }
+        }
+      }
+    });
+  }catch(e){
+    el.textContent = "gerade nicht abrufbar";
+    el.style.color = "var(--muted)";
+  }
+}
+document.getElementById("rangeChips").addEventListener("click", e => {
+  const chip = e.target.closest(".chip"); if(!chip) return;
+  [...document.getElementById("rangeChips").querySelectorAll(".chip")].forEach(c => c.classList.remove("active"));
+  chip.classList.add("active");
+  loadPriceChart(chip.dataset.r);
+});
+loadPriceChart("1m");
 
 // Start
 refresh();
