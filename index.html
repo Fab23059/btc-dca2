@@ -12,7 +12,9 @@
 <meta name="apple-mobile-web-app-title" content="BTC-Sparplan" />
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23F7931A'/%3E%3Ctext x='32' y='46' font-size='42' text-anchor='middle' fill='%231a1205' font-family='sans-serif' font-weight='bold'%3E%E2%82%BF%3C/text%3E%3C/svg%3E" />
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.3/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+<script>window.Chart||document.write('<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.3/chart.umd.min.js"><\/script>')</script>
+<script>window.Chart||document.write('<script src="https://unpkg.com/chart.js@4.4.3/dist/chart.umd.min.js"><\/script>')</script>
 <style>
   :root{
     --bg:#0b0b0d; --surface:#141416; --surface2:#0f0f12; --border:#26262c;
@@ -421,6 +423,8 @@ async function loadPriceChart(range){
   const labels=pts.map(p=>fmtPriceLabel(p.t,range)); const closes=pts.map(p=>p.c);
   const first=closes[0], last=closes[closes.length-1]; const up=last>=first; const diff=(last-first)/first*100;
   const col=up?"#3fb950":"#f85149"; el.textContent=(up?"+":"")+diff.toFixed(2)+" %"; el.style.color=col;
+  if(typeof Chart==="undefined"){ el.innerHTML='Diagramm-Bibliothek blockiert &ndash; bitte Werbe-/Inhaltsblocker f&uuml;r diese Seite aus<button class="mini-btn" onclick="location.reload()">neu laden</button>'; el.style.color="var(--neg)"; return; }
+  try{
   const ctx=document.getElementById("priceChart").getContext("2d"); if(priceChart) priceChart.destroy();
   priceChart=new Chart(ctx,{ type:"line", data:{labels,datasets:[{data:closes,borderColor:col,borderWidth:2,pointRadius:0,tension:.1,fill:true,backgroundColor:up?"rgba(63,185,80,.08)":"rgba(248,81,73,.08)"}]},
     options:{ responsive:true, maintainAspectRatio:false,
@@ -428,6 +432,7 @@ async function loadPriceChart(range){
         callbacks:{label:c=>" "+c.parsed.y.toLocaleString("de-DE",{style:"currency",currency:"EUR"})}}},
       scales:{ x:{grid:{color:"#1c1c22"},ticks:{color:"#8a8a92",maxTicksLimit:8,font:{size:10}},border:{display:false}},
         y:{position:"right",grid:{color:"#1c1c22"},border:{display:false},ticks:{color:"#8a8a92",font:{size:10},callback:v=>Math.round(v).toLocaleString("de-DE")+"\u00A0\u20AC"}} } } });
+  }catch(err){ el.textContent="Zeichenfehler: "+(err&&err.message?err.message:err); el.style.color="var(--neg)"; }
 }
 
 // ---- Backup ----
