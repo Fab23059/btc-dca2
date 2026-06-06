@@ -584,14 +584,18 @@ async function loadPriceChart(range){
   const el = document.getElementById("priceRange");
   el.textContent = "lade\u2026";
   try{
-    // Direkt api.binance.com – CORS-geprüft, läuft nachweislich im Browser
-    const url = `https://api.binance.com/api/v3/klines?symbol=${SYMBOL}&interval=${cfg.interval}&limit=${cfg.limit}`;
-    const r = await fetch(url, {cache:"no-store"});
-    if(!r.ok) throw new Error("HTTP "+r.status);
-    const data = await r.json();
-    if(!Array.isArray(data)||!data.length) throw new Error("Kein Array: "+JSON.stringify(data).slice(0,80));
-    const labels = data.map(k => fmtPriceLabel(k[0], range));
-    const closes = data.map(k => parseFloat(k[4]));
+    // BTCEUR klines sind für EU-Nutzer deaktiviert.
+    // Wir holen BTCUSDT-Kerzen und rechnen mit dem Live EUR/USDT-Kurs um.
+    const base = "https://api.binance.com";
+    const [klines, eurTick, usdtTick] = await Promise.all([
+      fetch(`${base}/api/v3/klines?symbol=BTCUSDT&interval=${cfg.interval}&limit=${cfg.limit}`,{cache:"no-store"}).then(r=>{ if(!r.ok) throw new Error("HTTP "+r.status); return r.json(); }),
+      fetch(`${base}/api/v3/ticker/price?symbol=BTCEUR`,{cache:"no-store"}).then(r=>r.json()),
+      fetch(`${base}/api/v3/ticker/price?symbol=BTCUSDT`,{cache:"no-store"}).then(r=>r.json()),
+    ]);
+    if(!Array.isArray(klines)||!klines.length) throw new Error("Keine Daten");
+    const eurRatio = parseFloat(eurTick.price) / parseFloat(usdtTick.price);
+    const labels = klines.map(k => fmtPriceLabel(k[0], range));
+    const closes = klines.map(k => parseFloat(k[4]) * eurRatio);
     const first = closes[0], last = closes[closes.length-1];
     const up = last >= first;
     const diff = (last - first) / first * 100;
@@ -621,7 +625,7 @@ async function loadPriceChart(range){
       }
     });
   }catch(e){
-    el.innerHTML = 'gerade nicht abrufbar &nbsp;<button onclick="loadPriceChart(document.querySelector(\'#rangeChips .chip.active\').dataset.r)" style="background:#1a1a20;border:1px solid #26262c;color:#cfcfd6;border-radius:8px;padding:3px 10px;font-size:11px;cursor:pointer">↺ nochmal</button>';
+    el.innerHTML = 'gerade nicht abrufbar &nbsp;<button onclick="loadPriceChart(document.querySelector(\'#rangeChips .chip.active\').dataset.r)" style="background:#1a1a20;border:1px solid #26262c;color:#cfcfd6;border-radius:8px;padding:3px 10px;font-size:11px;cursor:pointer">&#8635; nochmal</button>';
     el.style.color = "var(--muted)";
   }
 }
