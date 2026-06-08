@@ -2,10 +2,14 @@ name: BTC DCA Telegram Push
 
 on:
   schedule:
-    # 06:00 UTC = 08:00 Uhr im Sommer (CEST)
-    - cron: "0 6 * * 1"
-    # 07:00 UTC = 08:00 Uhr im Winter (CET)
-    - cron: "0 7 * * 1"
+    # GitHub-Cron laeuft in UTC. Der echte Binance-Kauf ist 08:39:54 DE-Zeit,
+    # darum feuern wir NACH dem Kauf (~08:45 DE) und ganzjaehrig korrekt:
+    #   06:45 UTC  -> im Sommer = 08:45 DE  (sendet)
+    #   07:45 UTC  -> im Winter = 08:45 DE  (sendet)
+    # bot.py prueft die lokale Uhrzeit und sendet nur beim 08:40-08:59-Lauf.
+    - cron: "45 6 * * 1"
+    - cron: "45 7 * * 1"
+  # Manuell ausloesbar zum Testen (sendet sofort, ohne Zeitpruefung).
   workflow_dispatch:
     inputs:
       force:
@@ -13,6 +17,7 @@ on:
         type: boolean
         default: true
 
+# Verhindert parallele Laeufe, falls beide Crons mal kollidieren.
 concurrency:
   group: btc-dca-push
   cancel-in-progress: false
