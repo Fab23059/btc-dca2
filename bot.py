@@ -2,12 +2,13 @@
 """
 BTC-DCA -> Telegram-Push
 ========================
-Laeuft via GitHub Actions jeden Montag um 08:00 Uhr deutscher Zeit.
+Laeuft via GitHub Actions jeden Montag um ~08:45 Uhr deutscher Zeit
+(also kurz nach dem echten Binance-Kauf um 08:39:54).
 
 Stateless: Das Skript haelt keine Datenbank. Es rechnet die komplette
 Historie bei jedem Lauf neu aus oeffentlichen Kursdaten aus.
 Das ist moeglich, weil der Sparplan deterministisch ist (jeder Montag
-08:00 Europe/Berlin ab dem 08.06.2026).
+08:40 Europe/Berlin ab dem 08.06.2026).
 
 Es wird KEIN API-Key benoetigt. Kursquellen sind dieselben wie im
 Dashboard: CryptoCompare (zuerst) und CoinGecko (Fallback). Dadurch
@@ -17,6 +18,7 @@ zeigen Telegram-Nachricht und Dashboard garantiert identische Zahlen.
 import os
 import sys
 import json
+import random
 import datetime as dt
 from zoneinfo import ZoneInfo
 import urllib.request
@@ -32,10 +34,11 @@ BUY_HOUR = 8                               # Ausfuehrungszeit lt. Binance: 08:39
 BUY_MIN = 40                               # -> wir runden auf 08:40
 TZ = ZoneInfo("Europe/Berlin")
 
-# Aus GitHub Secrets / Variables
+# Aus GitHub Secrets / Variables. 'or' faengt auch einen leeren Wert ab
+# (z.B. wenn die Repo-Variable DASHBOARD_URL gar nicht gesetzt ist).
 TG_TOKEN = os.environ.get("TELEGRAM_TOKEN")
 TG_CHAT = os.environ.get("TELEGRAM_CHAT_ID")
-DASHBOARD_URL = os.environ.get("DASHBOARD_URL", "https://fab23059.github.io/btc-dca2/")
+DASHBOARD_URL = os.environ.get("DASHBOARD_URL") or "https://fab23059.github.io/btc-dca2/"
 
 
 # ------------------------------- Helfer ----------------------------------
@@ -138,6 +141,37 @@ def btc(x):
     return f"{x:.8f}"
 
 
+# -------------------------- Broker-Kommentar ------------------------------
+# Ein heruntergekommener Ex-Broker im Wolf-of-Wall-Street-Modus kommentiert
+# deine Kaeufe. Manisch, halb unserioes, aber die echte Expertise blitzt durch.
+BROKER_FIRST = [
+    "Erste Tranche, Kid \u2013 genau so hat bei mir auch alles angefangen, bevor die Lambos kamen. Der Markt belohnt nicht die Schlauen, er belohnt die, die jeden Montag wiederkommen. Setz dich rein und lass den Zinseszins die Drecksarbeit machen.",
+    "Willkommen im Spiel, Rookie. Ich hab Vermoegen kommen und gehen sehen, aber weisst du was bleibt? Disziplin \u2013 du kaufst stur weiter, egal was die Schlagzeilen schreien.",
+    "Tranche eins steht. Klingt nach wenig? So fuehlt sich jeder Anfang an. Volatilitaet ist dein Freund, wenn du regelmaessig kaufst \u2013 merk dir den Satz, der war mal 50 Riesen Beratung wert.",
+]
+BROKER_UP = [
+    "Teurer eingekauft, na und? Das heisst der Markt laeuft, nicht dass du zu spaet bist. Ich hab '17 auf den perfekten Dip gewartet und ihn nie gesehen \u2013 Trend is your friend, Baby.",
+    "Hoeher als letzte Woche \u2013 relax, das ist ein Bullmarkt-Symptom, kein Fehler. Die Amateure warten auf Ruecksetzer und verpassen die Rallye, die Profis akkumulieren durch. Brust raus.",
+    "Aufschlag bezahlt, ja \u2013 aber Momentum kostet nun mal Eintritt. Ein gruener Montag ist kein Grund zu heulen, sondern weiterzumachen. Stur. Bleiben.",
+]
+BROKER_DOWN = [
+    "DIP! Hoerst du das Klingeln? Das ist die Kasse \u2013 dieselben Sats fuer weniger Fiat, das ist quasi geschenkt. Schwache Haende kotzen jetzt, du sammelst ein. Genau dafuer macht man DCA.",
+    "Guenstiger als letzte Woche \u2013 das ist kein Crash, das ist ein SALE. Ich haette '18 fuer so einen Montag einiges gegeben. Rot ist die Farbe der Geduldigen, also laechel und kauf nach.",
+    "Runtergekommen? Perfekt, mehr Bitcoin fuers gleiche Geld \u2013 Mathe luegt nicht, auch wenn ich's manchmal tue. Die Angst der anderen ist dein Rabatt. Plan durchziehen, irgendwann dankst du mir.",
+]
+
+
+def broker_take(week_no, diff_pct):
+    """Liefert einen passenden, leicht groessenwahnsinnigen Spruch."""
+    if week_no <= 1:
+        pool = BROKER_FIRST
+    elif diff_pct is not None and diff_pct < 0:
+        pool = BROKER_DOWN
+    else:
+        pool = BROKER_UP
+    return random.choice(pool)
+
+
 # -------------------------------- Hauptlauf -------------------------------
 def main():
     now_local = dt.datetime.now(TZ)
@@ -173,9 +207,9 @@ def main():
     last_m = tranches[-2] if len(tranches) >= 2 else None
     avg_price = cum_eur / cum_btc if cum_btc else 0.0
     week_no = len(tranches)
-    fees_total = cum_eur * FEE_RATE
     next_buy = this_m["date"] + dt.timedelta(days=7)
 
+    diff_pct = None
     if last_m:
         diff_pct = (this_m["price"] - last_m["price"]) / last_m["price"] * 100
         if diff_pct >= 0:
@@ -183,42 +217,51 @@ def main():
         else:
             cmp_line = f"\U0001F4C9 <b>{de(diff_pct)} %</b> guenstiger als letzten Montag"
     else:
-        cmp_line = "<i>Erster Kauf \u2013 kein Vergleich moeglich.</i>"
+        cmp_line = "\U0001F331 <i>Erster Kauf \u2013 kein Vergleich moeglich.</i>"
 
-    # Aktueller Wert & G/V (falls Live-Kurs abrufbar)
+    def signed(x):
+        return ("+" if x >= 0 else "") + eur(x)
+
+    # Wert & G/V (falls Live-Kurs abrufbar) \u2013 gesamt + diese Woche
     cur = current_price()
+    value_lines = ""
     if cur:
         value_now = cum_btc * cur
-        pnl = value_now - cum_eur
-        pnl_pct = (pnl / cum_eur * 100) if cum_eur else 0.0
-        arrow = "\U0001F7E2" if pnl >= 0 else "\U0001F534"
-        sign = "+" if pnl >= 0 else ""
-        value_block = (
-            f"<b>Wert jetzt:</b> {eur(value_now)}\n"
-            f"{arrow} <b>G/V:</b> {sign}{eur(pnl)} ({sign}{de(pnl_pct)} %)\n"
+        pnl_total = value_now - cum_eur
+        pnl_total_pct = (pnl_total / cum_eur * 100) if cum_eur else 0.0
+        dot = "\U0001F7E2" if pnl_total >= 0 else "\U0001F534"
+        pct_sign = "+" if pnl_total_pct >= 0 else ""
+        value_lines = (
+            f"\U0001F48E <b>Wert jetzt:</b> {eur(value_now)}\n"
+            f"{dot} <b>G/V gesamt:</b> {signed(pnl_total)} ({pct_sign}{de(pnl_total_pct)} %)\n"
         )
-    else:
-        value_block = ""
+        if last_m:
+            prev_btc = cum_btc - this_m["btc"]
+            value_prev = prev_btc * last_m["price"]
+            pnl_week = pnl_total - (value_prev - (cum_eur - WEEKLY_EUR))
+            value_lines += f"\U0001F4C5 <b>G/V diese Woche:</b> {signed(pnl_week)}\n"
+
+    take = broker_take(week_no, diff_pct)
 
     msg = (
         f"\u20BF <b>BTC-Sparplan \u2013 Montag {this_m['date']:%d.%m.%Y}</b>\n"
-        f"<i>Woche {week_no}</i>\n"
+        f"\U0001F5D3\uFE0F <i>Woche {week_no}</i>\n"
         f"\n"
-        f"<b>Kurs (08:40):</b> {eur(this_m['price'])}\n"
+        f"\U0001F4B0 <b>Kurs (08:40):</b> {eur(this_m['price'])}\n"
         f"{cmp_line}\n"
         f"\n"
-        f"<b>Gekauft:</b> {btc(this_m['btc'])} BTC\n"
-        f"<i>(fuer {eur(NET_EUR)} netto, nach 0,40 % Spread)</i>\n"
+        f"\U0001F6D2 <b>Gekauft:</b> {btc(this_m['btc'])} BTC\n"
+        f"<i>(fuer {eur(NET_EUR)} netto)</i>\n"
         f"\n"
-        f"\u2014 <b>Gesamt</b> \u2014\n"
-        f"<b>Investiert:</b> {eur(cum_eur)}\n"
-        f"<b>BTC:</b> {btc(cum_btc)}\n"
-        f"<b>\u00D8 Kaufpreis:</b> {eur(avg_price)}\n"
-        f"{value_block}"
-        f"<b>Gebuehren gesamt:</b> {eur(fees_total)}\n"
+        f"\U0001FA99 <b>BTC gesamt:</b> {btc(cum_btc)}\n"
+        f"\U0001F3AF <b>\u00D8 Kaufpreis:</b> {eur(avg_price)}\n"
+        f"\U0001F4E6 <b>Investiert:</b> {eur(cum_eur)}\n"
+        f"{value_lines}"
         f"\n"
-        f'<a href="{https://fab23059.github.io/btc-dca2/}">\U0001F4CA Dashboard oeffnen</a>\n'
-        f"<i>N\u00e4chster Kauf: Montag {next_buy:%d.%m.%Y}</i>"
+        f"\U0001F399\uFE0F <i>\u201E{take}\u201C</i>\n"
+        f"\n"
+        f'\U0001F517 <a href="{DASHBOARD_URL}">Dashboard oeffnen</a>\n'
+        f"\u23ED\uFE0F <i>N\u00e4chster Kauf: Montag {next_buy:%d.%m.%Y}</i>"
     )
 
     send_telegram(msg)
