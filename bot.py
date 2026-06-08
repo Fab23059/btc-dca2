@@ -21,6 +21,7 @@ import datetime as dt
 from zoneinfo import ZoneInfo
 import urllib.request
 import urllib.parse
+import urllib.error
 
 # ----------------------------- Konfiguration -----------------------------
 START_DATE = dt.date(2026, 6, 8)          # erster Spar-Montag
@@ -141,26 +142,26 @@ def main():
     if last_m:
         diff_pct = (this_m["price"] - last_m["price"]) / last_m["price"] * 100
         if diff_pct >= 0:
-            cmp_line = f"\U0001F4C8 *{de(diff_pct)} %* teurer als letzten Montag"
+            cmp_line = f"\U0001F4C8 <b>{de(diff_pct)} %</b> teurer als letzten Montag"
         else:
-            cmp_line = f"\U0001F4C9 *{de(diff_pct)} %* guenstiger als letzten Montag"
+            cmp_line = f"\U0001F4C9 <b>{de(diff_pct)} %</b> guenstiger als letzten Montag"
     else:
-        cmp_line = "_Erster Kauf - kein Vergleich moeglich._"
+        cmp_line = "<i>Erster Kauf \u2013 kein Vergleich moeglich.</i>"
 
     msg = (
-        f"\u20BF *BTC-Sparplan - Montag {this_m['date']:%d.%m.%Y}*\n"
+        f"\u20BF <b>BTC-Sparplan \u2013 Montag {this_m['date']:%d.%m.%Y}</b>\n"
         f"\n"
-        f"*Kurs heute:* {eur(this_m['price'])}\n"
+        f"<b>Kurs heute:</b> {eur(this_m['price'])}\n"
         f"{cmp_line}\n"
         f"\n"
-        f"*Gekauft:* {btc(this_m['btc'])} BTC\n"
-        f"_(fuer {eur(NET_EUR)} netto, nach 0,40 % Spread)_\n"
+        f"<b>Gekauft:</b> {btc(this_m['btc'])} BTC\n"
+        f"<i>(fuer {eur(NET_EUR)} netto, nach 0,40 % Spread)</i>\n"
         f"\n"
-        f"*Gesamt investiert:* {eur(cum_eur)}\n"
-        f"*BTC gesamt:* {btc(cum_btc)}\n"
-        f"*\u00D8 Kaufpreis (inkl. Gebuehr):* {eur(avg_price)}\n"
+        f"<b>Gesamt investiert:</b> {eur(cum_eur)}\n"
+        f"<b>BTC gesamt:</b> {btc(cum_btc)}\n"
+        f"<b>\u00D8 Kaufpreis (inkl. Gebuehr):</b> {eur(avg_price)}\n"
         f"\n"
-        f"[\U0001F4CA Dashboard oeffnen]({DASHBOARD_URL})"
+        f'<a href="{DASHBOARD_URL}">\U0001F4CA Dashboard oeffnen</a>'
     )
 
     send_telegram(msg)
@@ -176,16 +177,21 @@ def send_telegram(text):
         {
             "chat_id": TG_CHAT,
             "text": text,
-            "parse_mode": "Markdown",
+            "parse_mode": "HTML",
             "disable_web_page_preview": "true",
         }
     ).encode()
     req = urllib.request.Request(url, data=payload, headers={"User-Agent": "btc-dca-bot"})
-    with urllib.request.urlopen(req, timeout=25) as r:
-        resp = json.loads(r.read().decode())
-        if not resp.get("ok"):
-            print(f"Telegram-Fehler: {resp}", file=sys.stderr)
-            sys.exit(1)
+    try:
+        with urllib.request.urlopen(req, timeout=25) as r:
+            resp = json.loads(r.read().decode())
+    except urllib.error.HTTPError as e:
+        body = e.read().decode(errors="replace")
+        print(f"Telegram-Fehler HTTP {e.code}: {body}", file=sys.stderr)
+        sys.exit(1)
+    if not resp.get("ok"):
+        print(f"Telegram-Fehler: {resp}", file=sys.stderr)
+        sys.exit(1)
 
 
 if __name__ == "__main__":
