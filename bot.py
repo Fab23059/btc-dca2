@@ -217,7 +217,7 @@ def main():
         f"{value_block}"
         f"<b>Gebuehren gesamt:</b> {eur(fees_total)}\n"
         f"\n"
-        f'<a href="{DASHBOARD_URL}">\U0001F4CA Dashboard oeffnen</a>\n'
+        f'<a href="{https://fab23059.github.io/btc-dca2/}">\U0001F4CA Dashboard oeffnen</a>\n'
         f"<i>N\u00e4chster Kauf: Montag {next_buy:%d.%m.%Y}</i>"
     )
 
