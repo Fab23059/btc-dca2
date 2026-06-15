@@ -177,13 +177,16 @@ def main():
     now_local = dt.datetime.now(TZ)
 
     # DST-sichere Trigger-Logik:
-    # GitHub-Cron feuert 06:45 UND 07:45 UTC (Montag). Nur der Lauf, der in
-    # deutscher Zeit auf 08:40-08:59 faellt, sendet wirklich (also NACH dem
-    # echten Binance-Kauf um 08:39:54). Im Sommer ist das der 06:45-UTC-Lauf
-    # (= 08:45 MESZ), im Winter der 07:45-UTC-Lauf (= 08:45 MEZ).
+    # GitHub-Cron feuert 06:45 UND 07:45 UTC (Montag). Im Sommer ist der
+    # 06:45-UTC-Lauf = 08:45 MESZ, im Winter der 07:45-UTC-Lauf = 08:45 MEZ.
+    # Sende-Fenster: 08:40 bis 09:39 deutscher Zeit. Breit genug, dass auch ein
+    # um bis zu ~55 Min verspaeteter GitHub-Cron noch durchkommt, aber so, dass
+    # pro Montag nur EIN Lauf sendet (der zweite Cron um 09:45 faellt knapp raus).
     force = os.environ.get("FORCE", "").strip().lower() in ("1", "true", "yes")
-    if not force and not (now_local.hour == BUY_HOUR and now_local.minute >= BUY_MIN):
-        print(f"Kein 08:40-Lauf (aktuell {now_local:%H:%M} DE-Zeit) -> uebersprungen.")
+    mins = now_local.hour * 60 + now_local.minute
+    start = BUY_HOUR * 60 + BUY_MIN          # 08:40
+    if not force and not (start <= mins < start + 60):
+        print(f"Ausserhalb Sende-Fenster 08:40-09:39 (aktuell {now_local:%H:%M} DE-Zeit) -> uebersprungen.")
         return
 
     today = now_local.date()
