@@ -2,22 +2,27 @@ name: BTC DCA Telegram Push
 
 on:
   schedule:
-    # GitHub-Cron laeuft in UTC. Der echte Binance-Kauf ist 08:39:54 DE-Zeit,
-    # darum feuern wir NACH dem Kauf (~08:45 DE) und ganzjaehrig korrekt:
-    #   06:45 UTC  -> im Sommer = 08:45 DE  (sendet)
-    #   07:45 UTC  -> im Winter = 08:45 DE  (sendet)
-    # bot.py prueft die lokale Uhrzeit und sendet nur beim 08:40-08:59-Lauf.
-    - cron: "45 6 * * 1"
-    - cron: "45 7 * * 1"
-  # Manuell ausloesbar zum Testen (sendet sofort, ohne Zeitpruefung).
+    # GitHub-Cron ist "best effort" und kann sich verspaeten ODER ganz ausfallen.
+    # Darum mehrere Versuche montagvormittags. bot.py sendet nur den ERSTEN Lauf
+    # nach 08:40 deutscher Zeit und merkt sich das in state/last_sent.txt ->
+    # genau EINE Nachricht, selbst wenn GitHub einzelne Laeufe verschluckt.
+    - cron: "45 6 * * 1"   # Sommer 08:45 / Winter 07:45
+    - cron: "15 7 * * 1"   # Sommer 09:15 / Winter 08:15
+    - cron: "45 7 * * 1"   # Sommer 09:45 / Winter 08:45
+    - cron: "15 8 * * 1"   # Sommer 10:15 / Winter 09:15
+  # Manuell ausloesbar zum Testen (sendet sofort, ohne Zeit-/Dedup-Pruefung).
   workflow_dispatch:
     inputs:
       force:
-        description: "Sofort senden (Zeitpruefung umgehen)"
+        description: "Sofort senden (Zeit & Dedup umgehen)"
         type: boolean
         default: true
 
-# Verhindert parallele Laeufe, falls beide Crons mal kollidieren.
+# Schreibrecht, damit der Bot den Sende-Status (state/last_sent.txt) sichern kann.
+permissions:
+  contents: write
+
+# Verhindert parallele Laeufe, falls mehrere Crons mal kollidieren.
 concurrency:
   group: btc-dca-push
   cancel-in-progress: false
@@ -41,3 +46,16 @@ jobs:
           DASHBOARD_URL: ${{ vars.DASHBOARD_URL }}
           FORCE: ${{ github.event_name == 'workflow_dispatch' && inputs.force }}
         run: python bot.py
+
+      - name: Sende-Status sichern
+        if: ${{ github.event_name == 'schedule' }}
+        run: |
+          if [ -n "$(git status --porcelain state/last_sent.txt)" ]; then
+            git config user.name "github-actions[bot]"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+            git add state/last_sent.txt
+            git commit -m "DCA: Nachricht gesendet [skip ci]"
+            git push || echo "Push fehlgeschlagen (nicht kritisch fuer diese Woche)"
+          else
+            echo "Kein neuer Sende-Status zu sichern."
+          fi
