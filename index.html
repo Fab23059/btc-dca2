@@ -70,6 +70,11 @@
   .scroll{overflow-x:auto; -webkit-overflow-scrolling:touch}
   .mini-btn{background:#1a1a20;border:1px solid var(--border);color:#cfcfd6;border-radius:8px;
     padding:3px 10px;font-size:11px;cursor:pointer;margin-left:6px}
+  .ovLbl{display:flex; flex-direction:column; gap:6px; font-size:12px; color:var(--muted)}
+  .ovInput{background:var(--surface2); border:1px solid var(--border); color:var(--text);
+    border-radius:10px; padding:10px 12px; font-size:14px; font-family:var(--sans); width:100%}
+  select.ovInput{appearance:none; -webkit-appearance:none}
+  .manual-dot{color:var(--accent); font-weight:700; margin-left:4px}
 </style>
 </head>
 <body>
@@ -149,6 +154,26 @@
   </div>
 
   <div class="card" style="margin-top:12px">
+    <div class="label" style="margin-bottom:10px">Kauf manuell korrigieren</div>
+    <div style="display:flex; flex-direction:column; gap:12px">
+      <label class="ovLbl">Kauftag
+        <select id="ovDate" class="ovInput"></select>
+      </label>
+      <label class="ovLbl">Tats&auml;chlich gekaufte BTC (aus Bitvavo)
+        <input id="ovBtc" class="ovInput" type="text" inputmode="decimal" placeholder="z. B. 0,00028123" />
+      </label>
+      <label class="ovLbl">Kurs in &euro; (optional)
+        <input id="ovPrice" class="ovInput" type="text" inputmode="decimal" placeholder="automatisch, wenn leer" />
+      </label>
+      <div style="display:flex; gap:10px; flex-wrap:wrap">
+        <button id="ovSave" class="btn btn-accent">Speichern</button>
+        <button id="ovReset" class="btn">Auf automatisch zur&uuml;cksetzen</button>
+      </div>
+      <div id="ovList" class="empty"></div>
+    </div>
+  </div>
+
+  <div class="card" style="margin-top:12px">
     <div class="label" style="margin-bottom:10px">Datensicherung</div>
     <div style="display:flex; gap:10px; flex-wrap:wrap">
       <button id="btnExport" class="btn">Export (JSON)</button>
@@ -224,6 +249,16 @@ function getMondays(){
 // ---- Cache ----
 function loadCache(k){ try{ return JSON.parse(localStorage.getItem(k))||{}; }catch(e){ return {}; } }
 function saveCache(k,v){ try{ localStorage.setItem(k,JSON.stringify(v)); }catch(e){} }
+
+// ---- Manuelle Korrekturen pro Kauftag ----
+const OVERRIDE_KEY = "btcdca_overrides_v1";
+function loadOverrides(){ try{ return JSON.parse(localStorage.getItem(OVERRIDE_KEY))||{}; }catch(e){ return {}; } }
+function saveOverrides(o){ try{ localStorage.setItem(OVERRIDE_KEY, JSON.stringify(o)); }catch(e){} }
+function parseNum(s){
+  if(s==null) return null; s=String(s).trim(); if(s==="") return null;
+  if(s.includes(",")) s=s.replace(/\./g,"").replace(",",".");   // deutsches Format: Punkt=Tausender, Komma=Dezimal
+  const n=parseFloat(s); return isNaN(n)?null:n;
+}
 
 // ---- Multi-Source Preis-Layer (browser-tauglich, CORS-sicher) ----
 async function getJSON(url){
@@ -307,16 +342,54 @@ async function refresh(){
   setStatus(offline);
   showWarn(offline ? "Manche Kurse waren gerade nicht abrufbar \u2013 es werden zwischengespeicherte Daten genutzt." : "");
   document.getElementById("updated").textContent=" \u00B7 Stand "+new Date().toLocaleString("de-DE",{hour:"2-digit",minute:"2-digit"});
+  populateOvDates();
+  renderOvList();
   render();
+}
+
+// ---- Manuelle Korrektur: UI-Logik ----
+function populateOvDates(){
+  const sel=document.getElementById("ovDate"); if(!sel) return;
+  const cur=sel.value;
+  sel.innerHTML = state.mondays.map(mo=>`<option value="${mo.key}">${mo.d}.${mo.m}.${mo.y}</option>`).join("");
+  if(cur && state.mondays.some(mo=>mo.key===cur)) sel.value=cur;
+  else if(state.mondays.length) sel.value=state.mondays[state.mondays.length-1].key;
+  ovPrefill();
+}
+function ovPrefill(){
+  const ov=loadOverrides(); const key=document.getElementById("ovDate").value; const o=ov[key]||{};
+  document.getElementById("ovBtc").value = o.btc!=null ? o.btc.toLocaleString("de-DE",{minimumFractionDigits:8,maximumFractionDigits:8}) : "";
+  document.getElementById("ovPrice").value = o.price!=null ? o.price.toLocaleString("de-DE",{minimumFractionDigits:2,maximumFractionDigits:2}) : "";
+}
+function renderOvList(){
+  const ov=loadOverrides(); const keys=Object.keys(ov).sort(); const el=document.getElementById("ovList"); if(!el) return;
+  if(!keys.length){ el.textContent="Noch keine Korrekturen \u2013 alles wird automatisch geholt."; return; }
+  el.innerHTML = "Manuell gesetzt: " + keys.map(k=>{
+    const o=ov[k]; const p=[]; if(o.btc!=null) p.push(btcf(o.btc)); if(o.price!=null) p.push(eur(o.price));
+    const a=k.split("-"); return `<b>${+a[2]}.${+a[1]}.</b> (${p.join(", ")})`;
+  }).join(" \u00B7 ");
 }
 
 // ---- Berechnung ----
 function tranches(){
+  const ov = loadOverrides();
   const t=[]; let cumEur=0,cumBtc=0;
   for(const mo of state.mondays){
-    const price=state.prices[mo.key]; if(price==null) continue;
-    const net=WEEKLY_EUR*(1-(mo.fee!=null?mo.fee:0)); const amt=net/price; cumEur+=WEEKLY_EUR; cumBtc+=amt;
-    t.push({...mo, price, btc:amt, cumEur, cumBtc});
+    const o = ov[mo.key];
+    const net = WEEKLY_EUR*(1-(mo.fee!=null?mo.fee:0));
+    let price = state.prices[mo.key];
+    let btc;
+    if(o && o.btc!=null){                       // echte BTC-Menge eingetragen -> hat Vorrang
+      btc = o.btc;
+      price = (o.price!=null) ? o.price : net/o.btc;
+    } else if(o && o.price!=null){               // nur Kurs korrigiert
+      price = o.price; btc = net/price;
+    } else {                                     // vollautomatisch
+      if(price==null) continue;
+      btc = net/price;
+    }
+    cumEur+=WEEKLY_EUR; cumBtc+=btc;
+    t.push({...mo, price, btc, cumEur, cumBtc, manual: !!o});
   }
   return t;
 }
@@ -372,7 +445,7 @@ function renderTranches(t,cur){
   let rows="";
   for(let i=t.length-1;i>=0;i--){ const x=t[i]; const val=cur!=null?x.btc*cur:null; const pnl=val!=null?val-WEEKLY_EUR:null;
     const pct=pnl!=null?pnl/WEEKLY_EUR*100:null; const cls=pnl==null?"":(pnl>=0?"pos":"neg");
-    rows+=`<tr><td>${String(x.d).padStart(2,"0")}.${String(x.m).padStart(2,"0")}.${x.y}</td>
+    rows+=`<tr><td>${String(x.d).padStart(2,"0")}.${String(x.m).padStart(2,"0")}.${x.y}${x.manual?'<span class="manual-dot" title="manuell korrigiert">&#9679;</span>':''}</td>
       <td class="mono">${eur(x.price)}</td>
       <td class="mono">${x.btc.toLocaleString("de-DE",{minimumFractionDigits:8,maximumFractionDigits:8})}</td>
       <td class="mono">${eur(WEEKLY_EUR)}</td>
@@ -468,11 +541,11 @@ async function loadPriceChart(range){
 
 // ---- Backup ----
 function exportJSON(){
-  const blob=new Blob([JSON.stringify({exported:new Date().toISOString(),[PRICE_KEY]:loadCache(PRICE_KEY),[DAILY_KEY]:loadCache(DAILY_KEY)},null,2)],{type:"application/json"});
+  const blob=new Blob([JSON.stringify({exported:new Date().toISOString(),[PRICE_KEY]:loadCache(PRICE_KEY),[DAILY_KEY]:loadCache(DAILY_KEY),[OVERRIDE_KEY]:loadOverrides()},null,2)],{type:"application/json"});
   const a=document.createElement("a"); a.href=URL.createObjectURL(blob); a.download="btc-sparplan-backup.json"; a.click(); URL.revokeObjectURL(a.href);
 }
 function importJSON(file){ const rd=new FileReader();
-  rd.onload=()=>{ try{ const o=JSON.parse(rd.result); if(o[PRICE_KEY]) saveCache(PRICE_KEY,o[PRICE_KEY]); if(o[DAILY_KEY]) saveCache(DAILY_KEY,o[DAILY_KEY]); showWarn(""); refresh(); }catch(e){ showWarn("Import fehlgeschlagen \u2013 ung\u00FCltige Datei."); } };
+  rd.onload=()=>{ try{ const o=JSON.parse(rd.result); if(o[PRICE_KEY]) saveCache(PRICE_KEY,o[PRICE_KEY]); if(o[DAILY_KEY]) saveCache(DAILY_KEY,o[DAILY_KEY]); if(o[OVERRIDE_KEY]) saveOverrides(o[OVERRIDE_KEY]); showWarn(""); refresh(); }catch(e){ showWarn("Import fehlgeschlagen \u2013 ung\u00FCltige Datei."); } };
   rd.readAsText(file);
 }
 
@@ -490,6 +563,23 @@ document.getElementById("btnExport").addEventListener("click",exportJSON);
 document.getElementById("btnImport").addEventListener("click",()=>document.getElementById("fileImport").click());
 document.getElementById("fileImport").addEventListener("change",e=>{ if(e.target.files[0]) importJSON(e.target.files[0]); });
 document.getElementById("btnRefresh").addEventListener("click",()=>{ refresh(); loadPriceChart(document.querySelector("#rangeChips .chip.active").dataset.r); });
+
+document.getElementById("ovDate").addEventListener("change", ovPrefill);
+document.getElementById("ovSave").addEventListener("click",()=>{
+  const key=document.getElementById("ovDate").value; if(!key) return;
+  const btc=parseNum(document.getElementById("ovBtc").value);
+  const price=parseNum(document.getElementById("ovPrice").value);
+  const ov=loadOverrides();
+  if(btc==null && price==null){ delete ov[key]; }
+  else { ov[key]={}; if(btc!=null) ov[key].btc=btc; if(price!=null) ov[key].price=price; }
+  saveOverrides(ov); renderOvList(); render();
+});
+document.getElementById("ovReset").addEventListener("click",()=>{
+  const key=document.getElementById("ovDate").value; if(!key) return;
+  const ov=loadOverrides(); delete ov[key]; saveOverrides(ov);
+  document.getElementById("ovBtc").value=""; document.getElementById("ovPrice").value="";
+  renderOvList(); render();
+});
 
 // ---- Start ----
 loadPriceChart("1m");
