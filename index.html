@@ -74,7 +74,32 @@
   .ovInput{background:var(--surface2); border:1px solid var(--border); color:var(--text);
     border-radius:10px; padding:10px 12px; font-size:14px; font-family:var(--sans); width:100%}
   select.ovInput{appearance:none; -webkit-appearance:none}
-  .manual-dot{color:var(--accent); font-weight:700; margin-left:4px}
+  .manual-mark{color:var(--muted); font-size:11px; margin-left:6px; opacity:.65}
+  /* Zitat */
+  .quote{background:transparent; border:none; padding:2px 2px 0; margin-top:10px; cursor:pointer}
+  .quote .qt{font-size:14px; font-style:italic; color:#cfcfd6; line-height:1.5}
+  .quote .qa{font-size:11px; color:var(--muted); margin-top:4px; letter-spacing:.03em}
+  /* Meilensteine */
+  .ms-sats{font-family:var(--mono); font-variant-numeric:tabular-nums; font-size:26px; font-weight:700; letter-spacing:-.02em}
+  .ms-bar{height:10px; border-radius:6px; background:#1c1c22; overflow:hidden; margin:10px 0 6px}
+  .ms-fill{height:100%; background:linear-gradient(90deg,#f7931a,#ffb454); border-radius:6px; transition:width .6s ease}
+  .ms-next{font-size:12px; color:var(--muted)}
+  .badges{display:flex; flex-wrap:wrap; gap:6px; margin-top:12px}
+  .badge{background:var(--surface2); border:1px solid var(--border); color:#cfcfd6; border-radius:999px; padding:4px 10px; font-size:11px}
+  .badge.locked{opacity:.4}
+  /* Fear & Greed */
+  .fng-track{height:10px; border-radius:6px; margin:10px 0 6px; position:relative;
+    background:linear-gradient(90deg,#f85149,#f0a020,#8a8a92,#7fce4b,#3fb950)}
+  .fng-mark{position:absolute; top:-4px; width:4px; height:18px; border-radius:2px; background:#fff; box-shadow:0 0 4px rgba(0,0,0,.6); transform:translateX(-50%)}
+  .fng-row{display:flex; align-items:baseline; gap:8px}
+  .fng-val{font-family:var(--mono); font-size:22px; font-weight:700}
+  /* Konfetti */
+  .confetti{position:fixed; top:-10px; width:9px; height:14px; z-index:9999; pointer-events:none; border-radius:2px; animation:fall linear forwards}
+  @keyframes fall{ to{ transform:translateY(105vh) rotate(720deg); opacity:.9 } }
+  .toast{position:fixed; left:50%; bottom:32px; transform:translateX(-50%); z-index:10000;
+    background:#141416; border:1px solid var(--accent); color:#ffce9e; padding:12px 18px; border-radius:12px;
+    font-size:14px; font-weight:600; box-shadow:0 8px 30px rgba(0,0,0,.5); opacity:0; transition:opacity .3s}
+  .toast.show{opacity:1}
 </style>
 </head>
 <body>
@@ -83,10 +108,15 @@
     <div class="logo">&#8383;</div>
     <div>
       <h1>BTC-Sparplan</h1>
-      <div class="sub">15&nbsp;&euro;/Woche &middot; montags 20:50 &middot; seit 08.06.2026</div>
+      <div class="sub">15&nbsp;&euro;/Woche &middot; montags &middot; seit 08.06.2026</div>
     </div>
     <div class="status"><span id="dot" class="dot"></span><span id="statusText">lade&hellip;</span></div>
   </header>
+
+  <div class="quote" id="quoteCard" title="Antippen f&uuml;r einen neuen Gedanken">
+    <div class="qt" id="quoteText">&nbsp;</div>
+    <div class="qa" id="quoteAuthor"></div>
+  </div>
 
   <div id="warn" class="warn"></div>
 
@@ -105,6 +135,26 @@
         <span class="chip" data-p="365">Jahr</span>
       </div>
     </div>
+  </div>
+
+  <div class="card" id="msCard" style="margin-top:12px">
+    <div class="row-between">
+      <div class="label">Dein Stack</div>
+      <span id="msStreak" style="font-size:12px;color:var(--muted)"></span>
+    </div>
+    <div class="ms-sats" id="msSats">&ndash;</div>
+    <div class="ms-bar"><div class="ms-fill" id="msFill" style="width:0%"></div></div>
+    <div class="ms-next" id="msNext"></div>
+    <div class="badges" id="msBadges"></div>
+  </div>
+
+  <div class="card" id="fngCard" style="margin-top:12px; display:none">
+    <div class="row-between">
+      <div class="label">Markt-Stimmung (Fear &amp; Greed)</div>
+      <div class="fng-row"><span class="fng-val" id="fngVal">&ndash;</span><span id="fngEmoji"></span></div>
+    </div>
+    <div class="fng-track"><div class="fng-mark" id="fngMark" style="left:50%"></div></div>
+    <div style="font-size:12px;color:var(--muted)" id="fngLabel"></div>
   </div>
 
   <div class="card grid" style="margin-top:12px">
@@ -230,15 +280,25 @@ function keyOf(date){
   return `${date.getUTCFullYear()}-${String(date.getUTCMonth()+1).padStart(2,"0")}-${String(date.getUTCDate()).padStart(2,"0")}`;
 }
 function shortLabel(y,m,d){ return `${d}.${m}.`; }
+function todayKeyLocal(){
+  const d=new Date();
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+}
 function getMondays(){
-  const out=[]; let cur=new Date(Date.UTC(FIRST[0],FIRST[1]-1,FIRST[2])); const now=Date.now(); let g=0;
+  const out=[]; let cur=new Date(Date.UTC(FIRST[0],FIRST[1]-1,FIRST[2]));
+  const now=Date.now(); const tKey=todayKeyLocal(); let g=0;
   while(g++<5200){
     const y=cur.getUTCFullYear(),m=cur.getUTCMonth()+1,d=cur.getUTCDate();
     const key=`${y}-${String(m).padStart(2,"0")}-${String(d).padStart(2,"0")}`;
+    if(key>tKey) break;                        // zukuenftiger Montag -> Schluss
     const ph=phaseFor(key);
     if(ph){
-      const ts=berlinUTCms(y,m,d,ph.hour,ph.min);
-      if(ts>now) break;
+      // Kaufzeit ist bei Bitvavo zufaellig -> der Montag erscheint, sobald der
+      // Kalendertag da ist. Ist die hinterlegte Zeit noch in der Zukunft
+      // (heutiger Kauf evtl. noch nicht durch), nehmen wir den aktuellen Kurs
+      // als Platzhalter, bis du die echte Menge manuell eintraegst.
+      let ts=berlinUTCms(y,m,d,ph.hour,ph.min);
+      if(ts>now) ts=now;
       out.push({ key, y,m,d,ts, fee:ph.fee });
     }
     cur=new Date(cur.getTime()+7*86400000);
@@ -362,9 +422,15 @@ function ovPrefill(){
   document.getElementById("ovPrice").value = o.price!=null ? o.price.toLocaleString("de-DE",{minimumFractionDigits:2,maximumFractionDigits:2}) : "";
 }
 function renderOvList(){
-  const ov=loadOverrides(); const keys=Object.keys(ov).sort(); const el=document.getElementById("ovList"); if(!el) return;
-  if(!keys.length){ el.textContent="Noch keine Korrekturen \u2013 alles wird automatisch geholt."; return; }
-  el.innerHTML = "Manuell gesetzt: " + keys.map(k=>{
+  const ov=loadOverrides(); const el=document.getElementById("ovList"); if(!el) return;
+  const latest = state.mondays.length ? state.mondays[state.mondays.length-1] : null;
+  let hint="";
+  if(latest && !ov[latest.key]){
+    hint = `<div style="color:var(--accent);margin-bottom:8px">\u25CF Diese Woche (${latest.d}.${latest.m}.) noch nicht eingetragen \u2013 trag die echte BTC-Menge ein, sobald Bitvavo gekauft hat.</div>`;
+  }
+  const keys=Object.keys(ov).sort();
+  if(!keys.length){ el.innerHTML = hint + "Sonst wird alles automatisch geholt."; return; }
+  el.innerHTML = hint + "Manuell gesetzt: " + keys.map(k=>{
     const o=ov[k]; const p=[]; if(o.btc!=null) p.push(btcf(o.btc)); if(o.price!=null) p.push(eur(o.price));
     const a=k.split("-"); return `<b>${+a[2]}.${+a[1]}.</b> (${p.join(", ")})`;
   }).join(" \u00B7 ");
@@ -436,6 +502,7 @@ function render(){
 
   renderTranches(t,cur);
   renderChart(t,cur,totalBtc,investedGross,value);
+  renderMilestones(totalBtc, t.length);
 }
 
 function renderTranches(t,cur){
@@ -445,7 +512,7 @@ function renderTranches(t,cur){
   let rows="";
   for(let i=t.length-1;i>=0;i--){ const x=t[i]; const val=cur!=null?x.btc*cur:null; const pnl=val!=null?val-WEEKLY_EUR:null;
     const pct=pnl!=null?pnl/WEEKLY_EUR*100:null; const cls=pnl==null?"":(pnl>=0?"pos":"neg");
-    rows+=`<tr><td>${String(x.d).padStart(2,"0")}.${String(x.m).padStart(2,"0")}.${x.y}${x.manual?'<span class="manual-dot" title="manuell korrigiert">&#9679;</span>':''}</td>
+    rows+=`<tr><td>${String(x.d).padStart(2,"0")}.${String(x.m).padStart(2,"0")}.${x.y}${x.manual?'<span class="manual-mark" title="manuell eingetragen">&#10003;</span>':''}</td>
       <td class="mono">${eur(x.price)}</td>
       <td class="mono">${x.btc.toLocaleString("de-DE",{minimumFractionDigits:8,maximumFractionDigits:8})}</td>
       <td class="mono">${eur(WEEKLY_EUR)}</td>
@@ -539,6 +606,122 @@ async function loadPriceChart(range){
   }catch(err){ el.textContent="Zeichenfehler: "+(err&&err.message?err.message:err); el.style.color="var(--neg)"; }
 }
 
+// ===================== Extras: Zitate, Meilensteine, Stimmung =====================
+const QUOTES = [
+  {t:"Eine Reise von tausend Meilen beginnt mit einem einzigen Schritt.", a:"Laozi, Daodejing"},
+  {t:"Die Natur hat es nicht eilig, und doch wird alles vollendet.", a:"Laozi"},
+  {t:"Das Gro\u00dfe dieser Welt beginnt stets im Kleinen.", a:"Laozi, Daodejing"},
+  {t:"Wer andere kennt, ist klug. Wer sich selbst kennt, ist weise.", a:"Laozi"},
+  {t:"Sei wie Wasser: Es sucht keinen Streit und \u00fcberwindet doch das H\u00e4rteste.", a:"Laozi"},
+  {t:"Ruhe ist die Meisterin \u00fcber die Unruhe.", a:"Laozi, Daodejing"},
+  {t:"Der Weise handelt, ohne zu streiten.", a:"Laozi"},
+  {t:"Sorge dich nicht, langsam zu gehen. Sorge dich nur, stehenzubleiben.", a:"Chinesisches Sprichwort"},
+  {t:"Der beste Zeitpunkt zu pflanzen war vor zwanzig Jahren. Der zweitbeste ist jetzt.", a:"Chinesisches Sprichwort"},
+  {t:"Der Tropfen h\u00f6hlt den Stein nicht durch Kraft, sondern durch best\u00e4ndiges Fallen.", a:"Chinesisches Sprichwort"},
+  {t:"Geduld ist ein Baum mit bitterer Wurzel, aber s\u00fc\u00dfen Fr\u00fcchten.", a:"Chinesisches Sprichwort"},
+  {t:"Mit Geduld und Zeit wird aus dem Maulbeerblatt ein Seidenkleid.", a:"Chinesisches Sprichwort"},
+  {t:"F\u00e4llst du siebenmal, steh achtmal auf.", a:"Japanisches Sprichwort"},
+  {t:"Der Bambus, der sich im Sturm biegt, ist st\u00e4rker als die Eiche, die bricht.", a:"Japanisches Sprichwort"},
+  {t:"Hast du es eilig, mach einen Umweg.", a:"Japanisches Sprichwort"},
+  {t:"Vor der Erleuchtung: Holz hacken, Wasser tragen. Nach der Erleuchtung: Holz hacken, Wasser tragen.", a:"Zen-Sprichwort"},
+  {t:"Leere deine Tasse, damit sie neu gef\u00fcllt werden kann.", a:"Zen-Sprichwort"},
+  {t:"Wenn der Sch\u00fcler bereit ist, erscheint der Lehrer.", a:"Zen-Sprichwort"},
+  {t:"Sitze ruhig, tue nichts. Der Fr\u00fchling kommt, und das Gras w\u00e4chst von selbst.", a:"Zen-Sprichwort"},
+  {t:"Der Geist ist alles. Was du denkst, das wirst du.", a:"Buddha, Dhammapada"},
+  {t:"Auch ein Krug f\u00fcllt sich Tropfen f\u00fcr Tropfen.", a:"Buddha, Dhammapada"},
+  {t:"Alles Entstandene ist verg\u00e4nglich \u2013 wer das sieht, wird ruhig.", a:"Buddhistisches Sprichwort"},
+  {t:"Der Mensch stolpert nicht \u00fcber Berge, sondern \u00fcber Maulw\u00fcrfe.", a:"Konfuzius"},
+  {t:"Wohin du auch gehst, geh mit deinem ganzen Herzen.", a:"Konfuzius"},
+  {t:"Besser ein kleines Licht anz\u00fcnden, als die Dunkelheit verfluchen.", a:"Konfuzius"},
+  {t:"Es kommt nicht darauf an, wie langsam du gehst, solange du nicht stehen bleibst.", a:"Konfuzius"},
+  {t:"\u00dcbung von tausend Tagen ist Schulung, von zehntausend Tagen ist Meisterschaft.", a:"Miyamoto Musashi"},
+  {t:"Kenne dich und den Markt, und du musst hundert Schlachten nicht f\u00fcrchten.", a:"frei nach Sunzi"},
+];
+function renderQuote(){
+  if(!QUOTES.length) return;
+  let i=Math.floor(Math.random()*QUOTES.length);
+  const last=+(localStorage.getItem("btcdca_lastquote")||-1);
+  if(QUOTES.length>1 && i===last) i=(i+1)%QUOTES.length;
+  localStorage.setItem("btcdca_lastquote", i);
+  const q=QUOTES[i];
+  document.getElementById("quoteText").textContent="\u201E"+q.t+"\u201C";
+  document.getElementById("quoteAuthor").textContent="\u2014 "+q.a;
+}
+
+// --- Meilensteine / Gamification ---
+const SATS_MILESTONES=[50000,100000,200000,300000,500000,750000,1000000,2000000,5000000,10000000,21000000];
+const WEEK_MILESTONES=[4,8,12,26,52,104];
+function msLabel(m){ return m>=1000000 ? (m/1000000).toLocaleString("de-DE")+" Mio" : (m/1000).toLocaleString("de-DE")+"k"; }
+function renderMilestones(totalBtc, weeks){
+  const sats=totalBtc*1e8;
+  document.getElementById("msSats").textContent=Math.round(sats).toLocaleString("de-DE")+" sats";
+  document.getElementById("msStreak").textContent=weeks>0 ? ("\uD83D\uDD25 "+weeks+" Woche"+(weeks===1?"":"n")+" dabei") : "";
+  let prev=0, next=null;
+  for(const m of SATS_MILESTONES){ if(sats>=m) prev=m; else { next=m; break; } }
+  const fill=document.getElementById("msFill"), nextEl=document.getElementById("msNext");
+  if(next==null){ fill.style.width="100%"; nextEl.textContent="Alle Sats-Meilensteine geknackt \u2013 absolute Legende."; }
+  else{
+    const pct=Math.max(0,Math.min(100,(sats-prev)/(next-prev)*100));
+    fill.style.width=pct.toFixed(1)+"%";
+    const after=SATS_MILESTONES[SATS_MILESTONES.indexOf(next)+1];
+    nextEl.innerHTML=`N\u00e4chstes Ziel: <b>${msLabel(next)} sats</b> \u2013 noch ${Math.round(next-sats).toLocaleString("de-DE")} (${pct.toFixed(0)}\u00A0%)`+(after?` &middot; danach ${msLabel(after)}`:"");
+  }
+  const parts=[];
+  for(const m of SATS_MILESTONES) if(sats>=m) parts.push(`<span class="badge">\u2713 ${msLabel(m)} sats</span>`);
+  for(const w of WEEK_MILESTONES) if(weeks>=w) parts.push(`<span class="badge">\u2713 ${w} Wochen</span>`);
+  if(next!=null) parts.push(`<span class="badge locked">\u25CB ${msLabel(next)} sats</span>`);
+  const nextWeek=WEEK_MILESTONES.find(w=>weeks<w);
+  if(nextWeek) parts.push(`<span class="badge locked">\u25CB ${nextWeek} Wochen</span>`);
+  document.getElementById("msBadges").innerHTML = parts.length?parts.join(""):'<span class="badge locked">Der erste Kauf startet alles</span>';
+  celebrateMilestones(sats, weeks);
+}
+function celebrateMilestones(sats, weeks){
+  const achieved=[];
+  for(const m of SATS_MILESTONES) if(sats>=m) achieved.push("s"+m);
+  for(const w of WEEK_MILESTONES) if(weeks>=w) achieved.push("w"+w);
+  let done=null; try{ done=JSON.parse(localStorage.getItem("btcdca_celebrated")); }catch(e){}
+  if(!Array.isArray(done)){ localStorage.setItem("btcdca_celebrated", JSON.stringify(achieved)); return; }
+  const fresh=achieved.filter(a=>!done.includes(a));
+  if(fresh.length){
+    const top=fresh[fresh.length-1];
+    const msg = top[0]==="s" ? ("Meilenstein: "+msLabel(+top.slice(1))+" Satoshis! \uD83C\uDF89") : ((+top.slice(1))+" Wochen durchgezogen! \uD83D\uDD25");
+    confetti(); toast(msg);
+    localStorage.setItem("btcdca_celebrated", JSON.stringify(achieved));
+  }
+}
+function confetti(){
+  const cols=["#f7931a","#ffb454","#3fb950","#ececee","#ffce9e"];
+  for(let i=0;i<36;i++){
+    const c=document.createElement("div"); c.className="confetti";
+    c.style.left=Math.random()*100+"vw"; c.style.background=cols[i%cols.length];
+    c.style.animationDuration=(1.6+Math.random()*1.4)+"s"; c.style.animationDelay=(Math.random()*0.3)+"s";
+    document.body.appendChild(c); setTimeout(()=>c.remove(), 3400);
+  }
+}
+let toastTimer=null;
+function toast(msg){
+  let el=document.getElementById("toast");
+  if(!el){ el=document.createElement("div"); el.id="toast"; el.className="toast"; document.body.appendChild(el); }
+  el.textContent=msg; el.classList.add("show");
+  clearTimeout(toastTimer); toastTimer=setTimeout(()=>el.classList.remove("show"), 3600);
+}
+
+// --- Fear & Greed Index (alternative.me) ---
+async function loadFNG(){
+  try{
+    const j=await fetch("https://api.alternative.me/fng/?limit=1",{cache:"no-store"}).then(r=>{ if(!r.ok) throw 0; return r.json(); });
+    const d=j.data&&j.data[0]; if(!d) throw 0;
+    const val=parseInt(d.value,10); if(isNaN(val)) throw 0;
+    const map=[[25,"Extreme Angst","\uD83E\uDD76"],[45,"Angst","\uD83D\uDE1F"],[55,"Neutral","\uD83D\uDE10"],[75,"Gier","\uD83D\uDE00"],[101,"Extreme Gier","\uD83E\uDD11"]];
+    let label="Neutral",emoji="\uD83D\uDE10"; for(const [t,l,e] of map){ if(val<t){ label=l; emoji=e; break; } }
+    document.getElementById("fngVal").textContent=val;
+    document.getElementById("fngEmoji").textContent=emoji;
+    document.getElementById("fngMark").style.left=val+"%";
+    document.getElementById("fngLabel").textContent=label+" \u2013 Stimmung des Krypto-Markts (0 = extreme Angst, 100 = extreme Gier).";
+    document.getElementById("fngCard").style.display="block";
+  }catch(e){ /* nicht verfuegbar -> Karte bleibt versteckt */ }
+}
+
 // ---- Backup ----
 function exportJSON(){
   const blob=new Blob([JSON.stringify({exported:new Date().toISOString(),[PRICE_KEY]:loadCache(PRICE_KEY),[DAILY_KEY]:loadCache(DAILY_KEY),[OVERRIDE_KEY]:loadOverrides()},null,2)],{type:"application/json"});
@@ -581,7 +764,11 @@ document.getElementById("ovReset").addEventListener("click",()=>{
   renderOvList(); render();
 });
 
+document.getElementById("quoteCard").addEventListener("click", renderQuote);
+
 // ---- Start ----
+renderQuote();
+loadFNG();
 loadPriceChart("1m");
 refresh();
 </script>
