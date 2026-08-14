@@ -174,7 +174,7 @@
         <span class="chip" data-r="5y">5J</span><span class="chip" data-r="10y">10J</span>
       </div>
       <div class="chart-wrap"><canvas id="priceChart"></canvas></div>
-      <div style="font-size:11px;color:var(--muted);margin-top:8px">&#128994; = deine K&auml;ufe</div>
+      <div style="font-size:11px;color:var(--muted);margin-top:8px"><span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:#fff;border:2px solid #111318;vertical-align:-1px"></span> = deine K&auml;ufe</div>
     </div>
 
     <div class="card" style="margin-top:12px">
@@ -506,7 +506,7 @@ function renderChart(t,cur,totalBtc,investedGross,value){
   if(chart) chart.destroy();
   chart=new Chart(ctx,{ type:"line", data:{labels,datasets}, options:{ responsive:true, maintainAspectRatio:false, interaction:{mode:"index",intersect:false},
     plugins:{ legend:{labels:{color:"#cfcfd6",boxWidth:14,font:{size:12}}}, tooltip:{backgroundColor:"#101015",borderColor:"#26262c",borderWidth:1,titleColor:"#8a8a92",bodyColor:"#ececee",callbacks:{label:c=>` ${c.dataset.label}: ${isEur?eur(c.parsed.y):btcf(c.parsed.y)}`}}},
-    scales:{ x:{grid:{color:"#1c1c22"},ticks:{color:"#8a8a92",maxTicksLimit:8,font:{size:10}}}, y:{grid:{color:"#1c1c22"},ticks:{color:"#8a8a92",font:{size:10},callback:v=>isEur?Math.round(v)+"\u00A0\u20AC":(+v).toFixed(4)}} } } });
+    scales:{ x:{grid:{color:"#1c1c22"},afterBuildTicks:a=>{const t=a.ticks,n=t.length;if(n>8){const s=Math.ceil(n/7),k=[];for(let i=0;i<n;i+=s)k.push(t[i]);if(k[k.length-1]!==t[n-1])k.push(t[n-1]);a.ticks=k;}},ticks:{color:"#8a8a92",font:{size:10}}}, y:{grid:{color:"#1c1c22"},ticks:{color:"#8a8a92",font:{size:10},callback:v=>isEur?Math.round(v)+"\u00A0\u20AC":(+v).toFixed(4)}} } } });
 }
 
 // ---- Preisverlauf mit Kauf-Punkten ----
@@ -537,12 +537,12 @@ async function loadPriceChart(range){
     const ctx=document.getElementById("priceChart").getContext("2d"); if(priceChart) priceChart.destroy();
     priceChart=new Chart(ctx,{ type:"line", data:{labels,datasets:[
         {data:closes,borderColor:col,borderWidth:2,pointRadius:0,tension:.1,fill:true,backgroundColor:up?"rgba(63,185,80,.08)":"rgba(248,81,73,.08)",order:2},
-        {data:buyData,showLine:false,pointRadius:5,pointHoverRadius:6,pointBackgroundColor:"#3fb950",pointBorderColor:"#0b0b0d",pointBorderWidth:1.5,order:1}
+        {data:buyData,showLine:false,pointRadius:5,pointHoverRadius:7,pointBackgroundColor:"#ffffff",pointBorderColor:"#111318",pointBorderWidth:2,order:1}
       ]},
       options:{ responsive:true, maintainAspectRatio:false,
         plugins:{legend:{display:false},tooltip:{backgroundColor:"#101015",borderColor:"#26262c",borderWidth:1,bodyColor:"#ececee",titleColor:"#8a8a92",
           callbacks:{label:c=>{ if(c.datasetIndex===1){ const b=buyMeta[c.dataIndex]; return b? " \uD83D\uDFE2 Kauf "+b.d+"."+b.m+". \u00b7 "+eur(b.price) : " Kauf"; } return " "+c.parsed.y.toLocaleString("de-DE",{style:"currency",currency:"EUR"}); }}}},
-        scales:{ x:{grid:{color:"#1c1c22"},ticks:{color:"#8a8a92",maxTicksLimit:8,font:{size:10}},border:{display:false}}, y:{position:"right",grid:{color:"#1c1c22"},border:{display:false},ticks:{color:"#8a8a92",font:{size:10},callback:v=>Math.round(v).toLocaleString("de-DE")+"\u00A0\u20AC"}} } } });
+        scales:{ x:{grid:{color:"#1c1c22"},afterBuildTicks:a=>{const t=a.ticks,n=t.length;if(n>8){const s=Math.ceil(n/7),k=[];for(let i=0;i<n;i+=s)k.push(t[i]);if(k[k.length-1]!==t[n-1])k.push(t[n-1]);a.ticks=k;}},ticks:{color:"#8a8a92",font:{size:10}},border:{display:false}}, y:{position:"right",grid:{color:"#1c1c22"},border:{display:false},ticks:{color:"#8a8a92",font:{size:10},callback:v=>Math.round(v).toLocaleString("de-DE")+"\u00A0\u20AC"}} } } });
   }catch(err){ el.textContent="Zeichenfehler: "+(err&&err.message?err.message:err); el.style.color="var(--neg)"; }
 }
 
